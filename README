@@ -1,0 +1,80 @@
+Hogwild Examples
+===============================================================================
+This is a package which contains example implementions using Hogwild!
+Hogwild! is a framework built by the Hazy Research Group for Icremental Gardient
+Descent. More information is at:
+http://hazy.cs.wisc.edu/hazy/victor/Hogwild/
+
+Dependencies
+===============================================================================
+These examples use the Hazy Template Library and the Hogwild! Template Library,
+both of these libraries are included. 
+
+Building
+===============================================================================
+The binaries can be built with `make' and will produce the following binaries
+in the bin/ directory:
+
+convert
+  Convert TSV files into binary files. Assumes the rows and columns in the TSV
+  file are indexed starting at 0.
+convert_matlab
+  Converts TSV files into binary files. Assumes the rows and columns are indexed
+  starting at 1.
+unconvert
+  Converts a binary file into a TSV file. The TSV file will be indexed starting
+  at 0.
+multicut
+  Basic multicut, example dataset is dblife
+svm
+  A Basic SVM, example dataset is RCV1
+tracenorm
+  Tracenorm matrix factorization, example dataset is netflix
+bbtracenorm     
+  A 'best ball' implementation of tracenorm, this trains multiple models concurrently
+  using different step sizes and at each epoch selects the model that has
+  the lowest harmonic mean of the test and train RMSE. This is analogus to the
+  concept of 'best ball' in golf. 
+predict
+  Reconstructs a matrix using a model output by tracenorm or bbtracenorm
+
+Data Formats
+===============================================================================
+There are 2 data formats: Tab Separated Values and Binary. The SVM expects the
+TSV to be sorted by column and the labels are column -2 (see example RCV1 
+train file).
+
+Note that if the lowest row and column in the file is 1, then the option:
+'--matlab-tsv 1'
+Should be used when loading the file. Programs assume a starting index of 0 by
+default. 
+
+Binary files should be generated using the conversion tools. The matlab converter
+will subtract 1 for each row and column whewn converting.
+
+**** Notice: test files are always assumed to be TSV and fit in memory.
+
+Best Ball
+===============================================================================
+Each instance of hogwild includes a 'best ball' version which uses an optimization
+method similar to 'best ball' in golf. Hogwild! will run multiple models at the
+same time, each model is a 'ball.' The key is that each model has different
+parameters (for example, step_size). After each epoch (pass over the data),
+the RMSE for each model is computed. The model with lowest harmonic mean of
+train and test RMSE is selected as the 'best ball' and the contents of that 
+model is copied into every other model. This is analgous to a group of golfers
+playing 'best ball' where after each hit, all of the glofers move their balls
+to be next to the 'best ball' and then take their next shot. 
+
+When running the program, specify the step sizes using a file (as shown in
+the example). Specify the # of splits (threads) to use, this is the number
+of threads that work no each ball. For example, if there are 5 step sizes in
+the input file and --splits 3, then there will be a total of 15 threads. 
+
+Misc
+===============================================================================
+- When using the --file_scan option for tracenorm or bbtracenorm, the argument
+  specifies the amount of memory to use for a double-buffered scan. Note
+  that file scan implies that the train file is binary.
+  For example, '--file_scan 2.5' uses 2.5GB of memory to scan the file, which
+  means 1.25GB for a shadow page and 1.25 for the working page.

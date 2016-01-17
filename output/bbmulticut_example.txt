@@ -1,0 +1,32 @@
+Ball #0 = (step=0.100000)
+Ball #1 = (step=0.010000)
+Ball #2 = (step=0.001000)
+Loaded 180110 train examples.
+number of cols: 22485
+Beginning simplex projects
+Zeroing 9168 terminals
+Beginning simplex projects
+Zeroing 9168 terminals
+Beginning simplex projects
+Zeroing 9168 terminals
+wall_clock: 15.95137    Going Hogwild!
+Ball #0 harmonic mean of RMSEs = 4.596825
+Ball #1 harmonic mean of RMSEs = 4.583388
+Ball #2 harmonic mean of RMSEs = 4.497645
+epoch: 1 wall_clock: 173.30101 best_ball: 2 train_rmse: 4.49765
+Ball #0 harmonic mean of RMSEs = 4.614052
+Ball #1 harmonic mean of RMSEs = 4.620368
+Ball #2 harmonic mean of RMSEs = 4.580503
+epoch: 2 wall_clock: 353.52481 best_ball: 2 train_rmse: 4.58050
+Ball #0 harmonic mean of RMSEs = 4.614992
+Ball #1 harmonic mean of RMSEs = 4.632318
+Ball #2 harmonic mean of RMSEs = 4.602660
+epoch: 3 wall_clock: 536.33219 best_ball: 2 train_rmse: 4.60266
+Ball #0 harmonic mean of RMSEs = 4.634258
+Ball #1 harmonic mean of RMSEs = 4.624777
+Ball #2 harmonic mean of RMSEs = 4.616872
+epoch: 4 wall_clock: 720.54234 best_ball: 2 train_rmse: 4.61687
+Ball #0 harmonic mean of RMSEs = 4.627305
+Ball #1 harmonic mean of RMSEs = 4.626602
+Ball #2 harmonic mean of RMSEs = 4.621613
+epoch: 5 wall_clock: 904.97300 best_ball: 2 train_rmse: 4.62161

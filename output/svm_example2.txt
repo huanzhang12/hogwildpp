@@ -1,0 +1,24 @@
+Loading binary file...
+Loaded binary file!
+Loaded 47236 examples
+wall_clock: 1.80304    Going Hogwild!
+epoch: 1 wall_clock: 2.17427 train_time: 0.31225 test_time: 0.00185 epoch_time: 0.31225 train_rmse: 0.33431 test_rmse: 0.33358
+epoch: 2 wall_clock: 2.54243 train_time: 0.62142 test_time: 0.00182 epoch_time: 0.30917 train_rmse: 0.32644 test_rmse: 0.32867
+epoch: 3 wall_clock: 2.90981 train_time: 0.92999 test_time: 0.00176 epoch_time: 0.30857 train_rmse: 0.32304 test_rmse: 0.32815
+epoch: 4 wall_clock: 3.27400 train_time: 1.23518 test_time: 0.00188 epoch_time: 0.30519 train_rmse: 0.32064 test_rmse: 0.32790
+epoch: 5 wall_clock: 3.64063 train_time: 1.54321 test_time: 0.00183 epoch_time: 0.30803 train_rmse: 0.31915 test_rmse: 0.32841
+epoch: 6 wall_clock: 4.00461 train_time: 1.84837 test_time: 0.00185 epoch_time: 0.30517 train_rmse: 0.31806 test_rmse: 0.32762
+epoch: 7 wall_clock: 4.37469 train_time: 2.15521 test_time: 0.00181 epoch_time: 0.30684 train_rmse: 0.31741 test_rmse: 0.32853
+epoch: 8 wall_clock: 4.73760 train_time: 2.45965 test_time: 0.00185 epoch_time: 0.30444 train_rmse: 0.31663 test_rmse: 0.32742
+epoch: 9 wall_clock: 5.10024 train_time: 2.76387 test_time: 0.00183 epoch_time: 0.30422 train_rmse: 0.31592 test_rmse: 0.32735
+epoch: 10 wall_clock: 5.46609 train_time: 3.07115 test_time: 0.00183 epoch_time: 0.30728 train_rmse: 0.31528 test_rmse: 0.32798
+epoch: 11 wall_clock: 5.82944 train_time: 3.37591 test_time: 0.00184 epoch_time: 0.30476 train_rmse: 0.31466 test_rmse: 0.32737
+epoch: 12 wall_clock: 6.19242 train_time: 3.68050 test_time: 0.00183 epoch_time: 0.30459 train_rmse: 0.31484 test_rmse: 0.32727
+epoch: 13 wall_clock: 6.55983 train_time: 3.98959 test_time: 0.00181 epoch_time: 0.30909 train_rmse: 0.31435 test_rmse: 0.32784
+epoch: 14 wall_clock: 6.92258 train_time: 4.29390 test_time: 0.00183 epoch_time: 0.30431 train_rmse: 0.31422 test_rmse: 0.32850
+epoch: 15 wall_clock: 7.28579 train_time: 4.59849 test_time: 0.00182 epoch_time: 0.30459 train_rmse: 0.31414 test_rmse: 0.32828
+epoch: 16 wall_clock: 7.65051 train_time: 4.90457 test_time: 0.00184 epoch_time: 0.30608 train_rmse: 0.31413 test_rmse: 0.32750
+epoch: 17 wall_clock: 8.01397 train_time: 5.20943 test_time: 0.00184 epoch_time: 0.30485 train_rmse: 0.31335 test_rmse: 0.32806
+epoch: 18 wall_clock: 8.37715 train_time: 5.51360 test_time: 0.00185 epoch_time: 0.30417 train_rmse: 0.31354 test_rmse: 0.32814
+epoch: 19 wall_clock: 8.74165 train_time: 5.81965 test_time: 0.00185 epoch_time: 0.30605 train_rmse: 0.31321 test_rmse: 0.32731
+epoch: 20 wall_clock: 9.10485 train_time: 6.12406 test_time: 0.00183 epoch_time: 0.30441 train_rmse: 0.31318 test_rmse: 0.32826

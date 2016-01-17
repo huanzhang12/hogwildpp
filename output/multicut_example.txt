@@ -1,0 +1,8 @@
+Beginning simplex projects
+Zeroing 9168 terminals
+wall_clock: 5.60001    Going Hogwild!
+epoch: 1 wall_clock: 56.18812 train_time: 43.34304 test_time: 7.24500 epoch_time: 43.34304 train_rmse: 4.61223
+epoch: 2 wall_clock: 112.50365 train_time: 92.42520 test_time: 7.23332 epoch_time: 49.08215 train_rmse: 4.63253
+epoch: 3 wall_clock: 171.66903 train_time: 144.34662 test_time: 7.24388 epoch_time: 51.92142 train_rmse: 4.63432
+epoch: 4 wall_clock: 232.36041 train_time: 197.78282 test_time: 7.25509 epoch_time: 53.43620 train_rmse: 4.63357
+epoch: 5 wall_clock: 294.18160 train_time: 252.34825 test_time: 7.25568 epoch_time: 54.56543 train_rmse: 4.64043

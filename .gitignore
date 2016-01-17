@@ -1,0 +1,21 @@
+# object files
+*.d
+*.o
+*.pyc
+
+# emacs temp files
+*~
+
+# vi temp files
+*.swp
+
+# test output
+*.log
+
+# compiled libraries
+obj
+bin
+
+# datasets
+data
+

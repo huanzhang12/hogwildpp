@@ -1,0 +1,93 @@
+Loading binary file...
+done loading params.
+Loaded 281702 test examples.
+Loaded 100198806 train examples.
+number of rows: 480189
+number of cols: 17770
+Ball #0 = (step=0.100000, mu=0.010000)
+Ball #1 = (step=0.010000, mu=0.010000)
+Ball #2 = (step=0.001000, mu=0.010000)
+Mean = 3.604093
+Making scan...
+Running experiment...
+wall_clock: 4.91098    Going Hogwild!
+Ball #0 harmonic mean of RMSEs = 1.012457
+Ball #1 harmonic mean of RMSEs = 0.971785
+Ball #2 harmonic mean of RMSEs = 1.106682
+epoch: 1 wall_clock: 111.49881 best_ball: 1 harm_mean: 0.97178 train_rmse: 0.93596 test_rmse: 1.01046
+Ball #0 harmonic mean of RMSEs = 0.978227
+Ball #1 harmonic mean of RMSEs = 0.889597
+Ball #2 harmonic mean of RMSEs = 0.931522
+epoch: 2 wall_clock: 207.54638 best_ball: 1 harm_mean: 0.88960 train_rmse: 0.83836 test_rmse: 0.94750
+Ball #0 harmonic mean of RMSEs = 0.968183
+Ball #1 harmonic mean of RMSEs = 0.859980
+Ball #2 harmonic mean of RMSEs = 0.878059
+epoch: 3 wall_clock: 302.53194 best_ball: 1 harm_mean: 0.85998 train_rmse: 0.79979 test_rmse: 0.92997
+Ball #0 harmonic mean of RMSEs = -nan
+Ball #1 harmonic mean of RMSEs = 0.843802
+Ball #2 harmonic mean of RMSEs = 0.850561
+epoch: 4 wall_clock: 397.64292 best_ball: 1 harm_mean: 0.84380 train_rmse: 0.77671 test_rmse: 0.92359
+Ball #0 harmonic mean of RMSEs = -nan
+Ball #1 harmonic mean of RMSEs = 0.836729
+Ball #2 harmonic mean of RMSEs = 0.836163
+epoch: 5 wall_clock: 493.00094 best_ball: 2 harm_mean: 0.83616 train_rmse: 0.76518 test_rmse: 0.92166
+Ball #0 harmonic mean of RMSEs = -nan
+Ball #1 harmonic mean of RMSEs = 0.836030
+Ball #2 harmonic mean of RMSEs = 0.833844
+epoch: 6 wall_clock: 588.01452 best_ball: 2 harm_mean: 0.83384 train_rmse: 0.76143 test_rmse: 0.92149
+Ball #0 harmonic mean of RMSEs = -nan
+Ball #1 harmonic mean of RMSEs = 0.835418
+Ball #2 harmonic mean of RMSEs = 0.832302
+epoch: 7 wall_clock: 683.00746 best_ball: 2 harm_mean: 0.83230 train_rmse: 0.75884 test_rmse: 0.92151
+Ball #0 harmonic mean of RMSEs = nan
+Ball #1 harmonic mean of RMSEs = 0.834873
+Ball #2 harmonic mean of RMSEs = 0.831108
+epoch: 8 wall_clock: 778.29949 best_ball: 2 harm_mean: 0.83111 train_rmse: 0.75677 test_rmse: 0.92164
+Ball #0 harmonic mean of RMSEs = -nan
+Ball #1 harmonic mean of RMSEs = 0.834390
+Ball #2 harmonic mean of RMSEs = 0.830124
+epoch: 9 wall_clock: 873.32519 best_ball: 2 harm_mean: 0.83012 train_rmse: 0.75501 test_rmse: 0.92183
+Ball #0 harmonic mean of RMSEs = nan
+Ball #1 harmonic mean of RMSEs = 0.833964
+Ball #2 harmonic mean of RMSEs = 0.829289
+epoch: 10 wall_clock: 967.81547 best_ball: 2 harm_mean: 0.82929 train_rmse: 0.75347 test_rmse: 0.92208
+Ball #0 harmonic mean of RMSEs = -nan
+Ball #1 harmonic mean of RMSEs = 0.833587
+Ball #2 harmonic mean of RMSEs = 0.828568
+epoch: 11 wall_clock: 1062.11041 best_ball: 2 harm_mean: 0.82857 train_rmse: 0.75208 test_rmse: 0.92238
+Ball #0 harmonic mean of RMSEs = -nan
+Ball #1 harmonic mean of RMSEs = 0.833253
+Ball #2 harmonic mean of RMSEs = 0.827939
+epoch: 12 wall_clock: 1156.10244 best_ball: 2 harm_mean: 0.82794 train_rmse: 0.75082 test_rmse: 0.92272
+Ball #0 harmonic mean of RMSEs = -nan
+Ball #1 harmonic mean of RMSEs = 0.832956
+Ball #2 harmonic mean of RMSEs = 0.827385
+epoch: 13 wall_clock: 1248.52438 best_ball: 2 harm_mean: 0.82739 train_rmse: 0.74966 test_rmse: 0.92309
+Ball #0 harmonic mean of RMSEs = nan
+Ball #1 harmonic mean of RMSEs = 0.832693
+Ball #2 harmonic mean of RMSEs = 0.826896
+epoch: 14 wall_clock: 1339.88399 best_ball: 2 harm_mean: 0.82690 train_rmse: 0.74859 test_rmse: 0.92350
+Ball #0 harmonic mean of RMSEs = -nan
+Ball #1 harmonic mean of RMSEs = 0.832459
+Ball #2 harmonic mean of RMSEs = 0.826463
+epoch: 15 wall_clock: 1431.28425 best_ball: 2 harm_mean: 0.82646 train_rmse: 0.74760 test_rmse: 0.92393
+Ball #0 harmonic mean of RMSEs = -nan
+Ball #1 harmonic mean of RMSEs = 0.832251
+Ball #2 harmonic mean of RMSEs = 0.826078
+epoch: 16 wall_clock: 1523.24541 best_ball: 2 harm_mean: 0.82608 train_rmse: 0.74667 test_rmse: 0.92439
+Ball #0 harmonic mean of RMSEs = -nan
+Ball #1 harmonic mean of RMSEs = 0.832067
+Ball #2 harmonic mean of RMSEs = 0.825735
+epoch: 17 wall_clock: 1614.94776 best_ball: 2 harm_mean: 0.82573 train_rmse: 0.74580 test_rmse: 0.92486
+Ball #0 harmonic mean of RMSEs = -nan
+Ball #1 harmonic mean of RMSEs = 0.831903
+Ball #2 harmonic mean of RMSEs = 0.825430
+epoch: 18 wall_clock: 1707.66773 best_ball: 2 harm_mean: 0.82543 train_rmse: 0.74498 test_rmse: 0.92536
+Ball #0 harmonic mean of RMSEs = nan
+Ball #1 harmonic mean of RMSEs = 0.831759
+Ball #2 harmonic mean of RMSEs = 0.825158
+epoch: 19 wall_clock: 1799.64729 best_ball: 2 harm_mean: 0.82516 train_rmse: 0.74421 test_rmse: 0.92586
+Ball #0 harmonic mean of RMSEs = nan
+Ball #1 harmonic mean of RMSEs = 0.831632
+Ball #2 harmonic mean of RMSEs = 0.824917
+epoch: 20 wall_clock: 1891.64712 best_ball: 2 harm_mean: 0.82492 train_rmse: 0.74348 test_rmse: 0.92639

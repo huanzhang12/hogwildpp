@@ -1,0 +1,15 @@
+Starting Tracenorm.
+Loading binary file...
+done loading params.
+Mean = 3.604093
+Making scan...
+Running experiment...
+wall_clock: 4.95615    Going Hogwild!
+epoch: 1 wall_clock: 38.89610 train_time: 22.91842 test_time: 0.03474 epoch_time: 22.91842 train_rmse: 1.08509 test_rmse: 1.12914
+epoch: 2 wall_clock: 71.15495 train_time: 45.68521 test_time: 0.03432 epoch_time: 22.76678 train_rmse: 1.08509 test_rmse: 1.12914
+epoch: 3 wall_clock: 103.62952 train_time: 68.57903 test_time: 0.03315 epoch_time: 22.89382 train_rmse: 1.08507 test_rmse: 1.12914
+epoch: 4 wall_clock: 135.97772 train_time: 91.51561 test_time: 0.03288 epoch_time: 22.93658 train_rmse: 1.08353 test_rmse: 1.12873
+epoch: 5 wall_clock: 168.31723 train_time: 114.32967 test_time: 0.03300 epoch_time: 22.81406 train_rmse: 1.04452 test_rmse: 1.11561
+epoch: 6 wall_clock: 200.45302 train_time: 137.14301 test_time: 0.03303 epoch_time: 22.81334 train_rmse: 0.97251 test_rmse: 1.06971
+epoch: 7 wall_clock: 232.82936 train_time: 159.90329 test_time: 0.03213 epoch_time: 22.76028 train_rmse: 0.94455 test_rmse: 1.04177
+epoch: 8 wall_clock: 264.55432 train_time: 182.38032 test_time: 0.03261 epoch_time: 22.47703 train_rmse: 0.92467 test_rmse: 1.02353

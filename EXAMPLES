@@ -1,0 +1,11 @@
+# SVM:
+bin/svm --splits 3 --stepinitial 0.1 --step_decay 0.8 --mu 1 --binary 1 data/RCV1.train.bin data/RCV1.test.tsv 
+bin/bbsvm --splits 1 --stepinitial params/steps.lst --step_decay .99 --mu params/mus.lst --binary 1 data/RCV1.train.bin data/RCV1.test.tsv 
+
+# Tracenorm
+bin/tracenorm --mu 0.01 --maxrank 30 --epochs 8 --stepinitial 0.001 --step_decay 0.95 --splits 3 --file_scan 0.5 --matlab-tsv 1 data/netflix.train.bin data/netflix.test.tsv 
+bin/bbtracenorm --mu params/mus.lst --maxrank 30 --epochs 8 --stepinitial params/steps.lst --step_decay 0.95 --splits 1 --matlab-tsv 1 --file_scan 2.5 data/netflix.train.bin data/netflix.test.tsv 
+
+# Multicut
+bin/multicut --binary 1 --epochs 5 --splits 3 --stepinitial 0.1 --step_decay 0.95 --zero_one 1 data/dblife.train.bin data/T.txt 
+bin/bbmulticut --binary 1 --epochs 5 --splits 1 --stepinitial params/steps.lst --step_decay 0.95 --zero_one 1 data/dblife.train.bin data/T.txt 

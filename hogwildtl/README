@@ -1,0 +1,25 @@
+Hogwild!
+===============================================================================
+This is Hogwild!, a project from the Hazy Research Group
+http://hazy.cs.wisc.edu/hazy/victor/Hogwild/
+
+Hogwild! is a new way of parallelzing incremental gradient algorithms.
+This package is a template library for easily writing parallel 
+incremental gradient descent (IGD) programs.
+
+
+This package includes:
+ - Hogwild! source files
+ - Hogwild! google tests
+
+Note that this is a template library so compiling is not necessary, the Makefile
+is only used to compile to the google tests (which are optional).
+
+
+Dependencies
+===============================================================================
+Hogwild! requires
+  - The Hazy Template Library (HTL)
+  - pthreads
+Optional:
+  - Build and running the test cases requires GoogleTests (gtest).
