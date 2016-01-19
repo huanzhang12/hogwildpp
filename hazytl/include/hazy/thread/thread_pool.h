@@ -19,6 +19,8 @@
 #define HAZY_THREAD_THREAD_POOL_H
 
 #include <pthread.h>
+#include <numa.h>
+#include <vector>
 
 #include "hazy/thread/barrier_t.h"
 
@@ -97,6 +99,13 @@ class ThreadPool {
   void *hook_; //!< the hook* from Execute, cast to void*
   void (*callback_)(ThreadPool&, unsigned); //!< template nonsense callback
 
+  unsigned ncpus_;
+  unsigned nnodes_;
+  unsigned nphycpus_;
+  std::vector<std::vector<int> > * cpuids_; 
+  void BindToCPU(ThreadMeta &meta);
+  void GetTopology();
+  
   /*! \brief tell all the threads to exit safely (at some point) */
   void SetExitFlags(bool flag) {
     for (unsigned i = 0; i < n_threads_; i++)

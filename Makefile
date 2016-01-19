@@ -6,6 +6,8 @@ HOG_INCL=hogwildtl/include
 # Path to Hazy Template Library (e.g. hazytl/include)
 HTL_INCL=hazytl/include
 
+LIBS=-lpthread -lnuma
+
 # Conversion tools
 TOOLS=bin/convert_matlab bin/convert bin/unconvert
 UNAME=$(shell uname)
@@ -22,31 +24,31 @@ obj/frontend.o:
 	$(CPP) -c src/frontend_util.cc -o obj/frontend.o
 
 bin/svm: obj/frontend.o
-	$(CPP) -o bin/svm src/svm_main.cc -I$(HOG_INCL) -I$(HTL_INCL) -lpthread $(LIB_RT) \
+	$(CPP) -o bin/svm src/svm_main.cc -I$(HOG_INCL) -I$(HTL_INCL) $(LIBS) $(LIB_RT) \
 		obj/frontend.o
 
 bin/bbsvm: obj/frontend.o
-	$(CPP) -o bin/bbsvm src/bbsvm_main.cc -I$(HOG_INCL) -I$(HTL_INCL) -lpthread $(LIB_RT) \
+	$(CPP) -o bin/bbsvm src/bbsvm_main.cc -I$(HOG_INCL) -I$(HTL_INCL) $(LIBS) $(LIB_RT) \
 		obj/frontend.o
 
 bin/tracenorm: obj/frontend.o
-	$(CPP) -o bin/tracenorm src/tracenorm.cc -I$(HOG_INCL) -I$(HTL_INCL) -lpthread $(LIB_RT) \
+	$(CPP) -o bin/tracenorm src/tracenorm.cc -I$(HOG_INCL) -I$(HTL_INCL) $(LIBS) $(LIB_RT) \
 		obj/frontend.o
 
 bin/predict: 
-	$(CPP) -o bin/predict src/tracenorm/predict.cc -I$(HOG_INCL) -I$(HTL_INCL) -lpthread $(LIB_RT) \
+	$(CPP) -o bin/predict src/tracenorm/predict.cc -I$(HOG_INCL) -I$(HTL_INCL) $(LIBS) $(LIB_RT) \
 		obj/frontend.o
 
 bin/bbtracenorm: obj/frontend.o
-	$(CPP) -o bin/bbtracenorm src/bbtracenorm.cc -I$(HOG_INCL) -I$(HTL_INCL) -lpthread $(LIB_RT) \
+	$(CPP) -o bin/bbtracenorm src/bbtracenorm.cc -I$(HOG_INCL) -I$(HTL_INCL) $(LIBS) $(LIB_RT) \
 		obj/frontend.o
 
 bin/multicut: obj/frontend.o
-	$(CPP) -o bin/multicut src/multicut.cc -I$(HOG_INCL) -I$(HTL_INCL) -lpthread $(LIB_RT) \
+	$(CPP) -o bin/multicut src/multicut.cc -I$(HOG_INCL) -I$(HTL_INCL) $(LIBS) $(LIB_RT) \
 		obj/frontend.o
 
 bin/bbmulticut: obj/frontend.o
-	$(CPP) -o bin/bbmulticut src/bbmulticut.cc -I$(HOG_INCL) -I$(HTL_INCL) -lpthread $(LIB_RT) \
+	$(CPP) -o bin/bbmulticut src/bbmulticut.cc -I$(HOG_INCL) -I$(HTL_INCL) $(LIBS) $(LIB_RT) \
 		obj/frontend.o
 
 bin/convert: src/tools/tobinary.cc

@@ -19,6 +19,14 @@
 #define HAZY_THREAD_THREAD_POOL_INL_H
 
 #include <assert.h>
+#include <sched.h>
+#include <cstdio>
+#include <string>
+#include <sstream>
+#include <fstream>
+#include <iostream>
+#include <streambuf>
+#include <algorithm>
 
 // See for documentation
 #include "thread_pool.h"
@@ -73,6 +81,29 @@ void ThreadPool::Init() {
     metas_[i].tpool = this;
   }
 
+  if(numa_available() < 0) {
+    printf("System does not support NUMA API!\n");
+    exit(0);
+  }
+  ncpus_ = numa_num_task_cpus();
+  nnodes_ = numa_max_node() + 1;
+  nphycpus_ = 0;
+  printf("We are running on %d nodes and %d CPUs\n", nnodes_, ncpus_);
+  cpuids_ = new std::vector<std::vector<int> >[nnodes_];
+  GetTopology();
+  printf("CPU Topology: \n");
+  for (unsigned i = 0; i < nnodes_; ++i) {
+    printf("node %d:\t", i);
+    for (std::vector<std::vector<int> >::const_iterator cpu = cpuids_[i].begin(); cpu != cpuids_[i].end(); ++cpu) {
+      printf("[ ");
+      for (std::vector<int>::const_iterator t = (*cpu).begin(); t != (*cpu).end(); ++t)
+        printf("%d ", *t);
+      printf("] ");
+    }
+    putchar('\n');
+    nphycpus_ += cpuids_[i].size();
+  }
+  printf("%d physical cores total.\n", nphycpus_);
   threads_ = new pthread_t[n_threads_];
   for (unsigned i = 0; i < n_threads_; i++) {
     pthread_create(&threads_[i], NULL, __threadpool::RunThread,
@@ -81,9 +112,66 @@ void ThreadPool::Init() {
   ready_flag_ = true;
 }
 
+void ThreadPool::GetTopology() {
+  std::vector<int> known_siblings;
+  for (unsigned cpu = 0; cpu < ncpus_; ++cpu) {
+    // skip a core if it is a hyper-threaded logical core
+    if (std::find(known_siblings.begin(), known_siblings.end(), cpu) != known_siblings.end())
+      continue;
+    // if this core is not known as a sibling, add it to the core vector of its node
+    int node = numa_node_of_cpu(cpu);
+    std::vector<int> phy_core;
+    // find out the siblings of this core
+    std::stringstream path;
+    path << "/sys/devices/system/cpu/cpu" << cpu << "/topology/thread_siblings_list";
+    std::ifstream f(path.str().c_str());
+    if (f) {
+      std::string siblings((std::istreambuf_iterator<char>(f)),
+		     std::istreambuf_iterator<char>());
+      f.close();
+      // std::cout << "CPU " << cpu << " siblings:" << siblings << std::endl;
+      std::istringstream ss(siblings);
+      std::string coreid;
+      while(std::getline(ss, coreid, ',')) {
+	known_siblings.push_back(atoi(coreid.c_str()));
+        phy_core.push_back(atoi(coreid.c_str()));
+      }
+      /*
+      printf("Known siblings when processing core %d\n", cpu); 
+      for (std::vector<int>::const_iterator t = known_siblings.begin(); t != known_siblings.end(); ++t)
+	printf("%d ", *t);
+      putchar('\n');
+      */
+    }
+    else {
+      phy_core.push_back(cpu);
+    }
+    cpuids_[node].push_back(phy_core);
+  }
+}
+
+void ThreadPool::BindToCPU(ThreadMeta &meta) {
+  struct bitmask * cpu_mask;
+  int node = -1;
+  int ht_id = meta.thread_id / nphycpus_;
+  int coreid = meta.thread_id % nphycpus_; 
+  int i;
+  for (i = 0; i <= coreid; i += cpuids_[++node].size());
+  i = coreid - i + cpuids_[node].size();
+  // printf("i = %d, node = %d, ht_id = %d, coreid = %d\n", i, node, ht_id, coreid);
+  int cpu = cpuids_[node][i][ht_id % cpuids_[node][i].size()];
+  printf("Binding thread %d to CPU %d\n", meta.thread_id, cpu);
+  cpu_mask = numa_allocate_cpumask();
+  numa_bitmask_setbit(cpu_mask, cpu);
+  numa_sched_setaffinity(0, cpu_mask);
+  numa_free_cpumask(cpu_mask);
+}
+
 void ThreadPool::ThreadLoop(ThreadMeta &meta) {
   while (true) {
     barrier_wait(meta.ready);
+    // we want to bind our thread to a specified CPU
+    BindToCPU(meta);
     if (meta.exit_flag) {
       break;
     }
@@ -97,7 +185,12 @@ void ThreadPool::ThreadCallback(unsigned thread_id) {
   Task *t = static_cast<Task*>(arg_);
   void (*hook)(Task&, unsigned, unsigned) = reinterpret_cast<
       void (*)(Task&, unsigned, unsigned)>(hook_);
+  int cpu;
+  cpu = sched_getcpu();
+  printf("This is thread %u, running on CPU %d\n", thread_id, cpu);
   hook(*t, thread_id, n_threads_);
+  cpu = sched_getcpu();
+  printf("Thread %u exiting hook, running on CPU %d\n", thread_id, cpu);
 }
 
 template <class Task>
