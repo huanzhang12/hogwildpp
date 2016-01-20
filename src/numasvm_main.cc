@@ -16,9 +16,10 @@
 // Author : Victor Bittorf (bittorf [at] cs.wisc.edu)
 // Original Hogwild! Author: Chris Re (chrisre [at] cs.wisc.edu)             
 #include <cstdlib>
+#include <numa.h>
 
 #include "hazy/hogwild/hogwild-inl.h"
-#include "hazy/hogwild/memory_scan.h"
+#include "hazy/hogwild/numa_memory_scan.h"
 #include "hazy/scan/tsvfscan.h"
 #include "hazy/scan/binfscan.h"
 
@@ -26,7 +27,7 @@
 
 #include "svm/svmmodel.h"
 #include "svm/svm_loader.h"
-#include "svm/svm_exec.h"
+#include "numasvm/svm_exec.h"
 
 
 // Hazy imports
@@ -41,6 +42,19 @@ using hazy::hogwild::svm::fp_type;
 using namespace hazy::hogwild::svm;
 
 
+template <class Scan>
+size_t NumaLoadSVMExamples(Scan &scan, vector::FVector<SVMExample> * nodeex, unsigned nnodes) { 
+  size_t nfeats = 0;
+  for (unsigned i = 0; i < nnodes; ++i) {
+    scan.Reset();
+    numa_run_on_node(i);
+    numa_set_preferred(i);
+    nfeats = LoadSVMExamples<Scan>(scan, nodeex[i]);
+  }
+  numa_run_on_node(-1);
+  numa_set_preferred(-1);
+  return nfeats;
+}
 
 int main(int argc, char** argv) {
   hazy::util::Clock wall_clock;
@@ -112,29 +126,34 @@ int main(int argc, char** argv) {
   }
   //fp_type buf[50];
 
-  vector::FVector<SVMExample> train_examps;
-  vector::FVector<SVMExample> test_examps;
+  // we initialize thread pool here because we need CPU topology information
+  hazy::thread::ThreadPool tpool(nthreads);
+  tpool.Init();
+  unsigned nnodes = tpool.NodeCount();
+  
+  vector::FVector<SVMExample> * node_train_examps = new vector::FVector<SVMExample>[nnodes];
+  vector::FVector<SVMExample> * node_test_examps = new vector::FVector<SVMExample>[nnodes];
 
   size_t nfeats;
 
   if (loadBinary) {
     printf("Loading binary file...\n");
     scan::BinaryFileScanner scan(szExampleFile);
-    nfeats = LoadSVMExamples(scan, train_examps);
+    nfeats = NumaLoadSVMExamples(scan, node_train_examps, nnodes);
     printf("Loaded binary file!\n");
   } else if (matlab_tsv) {
     MatlabTSVFileScanner scan(szExampleFile);
-    nfeats = LoadSVMExamples(scan, train_examps);
+    nfeats = NumaLoadSVMExamples(scan, node_train_examps, nnodes);
   } else {
     TSVFileScanner scan(szExampleFile);
-    nfeats = LoadSVMExamples(scan, train_examps);
+    nfeats = NumaLoadSVMExamples(scan, node_train_examps, nnodes);
   }
   if (matlab_tsv) {
     MatlabTSVFileScanner scantest(szTestFile);
-    LoadSVMExamples(scantest, test_examps);
+    NumaLoadSVMExamples(scantest, node_test_examps, nnodes);
   } else {
     TSVFileScanner scantest(szTestFile);
-    LoadSVMExamples(scantest, test_examps);
+    NumaLoadSVMExamples(scantest, node_test_examps, nnodes);
   }
 
   unsigned *degs = new unsigned[nfeats];
@@ -142,17 +161,15 @@ int main(int argc, char** argv) {
   for (size_t i = 0; i < nfeats; i++) {
     degs[i] = 0;
   }
-  CountDegrees(train_examps, degs);
+  CountDegrees(node_train_examps[0], degs);
   tp.degrees = degs;
   tp.ndim = nfeats;
 
 //  hogwild::freeforall::FeedTrainTest(memfeed.GetTrough(), nepochs, nthreads);
   SVMModel m(nfeats);
-  hazy::thread::ThreadPool tpool(nthreads);
-  tpool.Init();
-  MemoryScan<SVMExample> mscan(train_examps);
-  Hogwild<SVMModel, SVMParams, SVMExec>  hw(m, tp, tpool);
-  MemoryScan<SVMExample> tscan(test_examps);
+  NumaMemoryScan<SVMExample> mscan(node_train_examps, nnodes);
+  Hogwild<SVMModel, SVMParams, NumaSVMExec>  hw(m, tp, tpool);
+  NumaMemoryScan<SVMExample> tscan(node_test_examps, nnodes);
 
   hw.RunExperiment(nepochs, wall_clock, mscan, tscan);
 

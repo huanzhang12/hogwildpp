@@ -88,6 +88,10 @@ class ThreadPool {
    */
   unsigned ThreadCount() { return n_threads_; }
 
+  unsigned CPUCount() const { return ncpus_;}
+  unsigned NodeCount() const { return nnodes_;}
+  unsigned PhyCPUCound() const { return nphycpus_; }
+  const std::vector<std::vector<int> > * Topology() const { return cpuids_; }
  private:
   unsigned n_threads_; //!< number of thrads in the pool
   barrier_t ready_; //!< wait for a task to work on

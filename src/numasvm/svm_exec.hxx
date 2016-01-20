@@ -20,6 +20,9 @@
 #include "hazy/vector/scale_add-inl.h"
 #include "hazy/hogwild/tools-inl.h"
 
+#include <numa.h>
+#include <sched.h>
+
 namespace hazy {
 namespace hogwild {
 namespace svm {
@@ -57,26 +60,35 @@ void inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
   }
 }
 
-void SVMExec::PostUpdate(SVMModel &model, SVMParams &params) {
+void NumaSVMExec::PostUpdate(SVMModel &model, SVMParams &params) {
   // Reduce the step size to encourage convergence
   params.step_size *= params.step_decay;
 }
 
-double SVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
+int NumaSVMExec::GetNumaNode() {
+  int cpu = sched_getcpu();
+  return numa_node_of_cpu(cpu);
+}
 
+double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
+
+  int node = GetNumaNode();
+  // TODO: per core model vector 
   SVMModel  &model = *task.model;
 
   SVMParams const &params = *task.params;
-  vector::FVector<SVMExample> const & exampsvec = task.block->ex;
+  // Select the example vector array based on current node
+  vector::FVector<SVMExample> const & exampsvec = task.block[node].ex;
   // calculate which chunk of examples we work on
   size_t start = hogwild::GetStartIndex(exampsvec.size, tid, total); 
   size_t end = hogwild::GetEndIndex(exampsvec.size, tid, total);
   // optimize for const pointers 
-  size_t *perm = task.block->perm.values;
+  // Seclect the pointers based on current node
+  size_t *perm = task.block[node].perm.values;
   SVMExample const * const examps = exampsvec.values;
   SVMModel * const m = &model;
   // individually update the model for each example
-  printf("UpdateModel: thread id %d updating model from %lu to %lu\n", tid, start, end);
+  printf("UpdateModel: thread id %d on node %d updating model %p from %lu to %lu\n", tid, node, exampsvec.values, start, end);
   for (unsigned i = start; i < end; i++) {
     size_t indirect = perm[i];
     ModelUpdate(examps[indirect], params, m);
@@ -84,11 +96,13 @@ double SVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
   return 0.0;
 }
 
-double SVMExec::TestModel(SVMTask &task, unsigned tid, unsigned total) {
+double NumaSVMExec::TestModel(SVMTask &task, unsigned tid, unsigned total) {
+  int node = GetNumaNode();
   SVMModel const &model = *task.model;
 
   //SVMParams const &params = *task.params;
-  vector::FVector<SVMExample> const & exampsvec = task.block->ex;
+  // Select the example vector array based on current node
+  vector::FVector<SVMExample> const & exampsvec = task.block[node].ex;
 
   // calculate which chunk of examples we work on
   size_t start = hogwild::GetStartIndex(exampsvec.size, tid, total); 
