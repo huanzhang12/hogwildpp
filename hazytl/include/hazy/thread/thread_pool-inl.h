@@ -58,6 +58,8 @@ ThreadPool::~ThreadPool() {
   }
   delete [] threads_;
   delete [] metas_;
+  delete [] thread_core_mapping_;
+  delete [] thread_node_mapping_;
   barrier_destroy(&ready_);
   barrier_destroy(&finished_);
 }
@@ -104,6 +106,7 @@ void ThreadPool::Init() {
     nphycpus_ += cpuids_[i].size();
   }
   printf("%d physical cores total.\n", nphycpus_);
+  ConfigThreadAffinity(); 
   threads_ = new pthread_t[n_threads_];
   for (unsigned i = 0; i < n_threads_; i++) {
     pthread_create(&threads_[i], NULL, __threadpool::RunThread,
@@ -150,21 +153,64 @@ void ThreadPool::GetTopology() {
   }
 }
 
+void ThreadPool::ConfigThreadAffinity() {
+  thread_core_mapping_ = new int[n_threads_];
+  thread_node_mapping_ = new int[n_threads_];
+  thread_phycore_mapping_ = new int[n_threads_];
+  int node_id, core_id, phycore_id;
+  for (unsigned i = 0; i < n_threads_; ++i) {
+    AssignThreadAffinity(i, &node_id, &core_id, &phycore_id);
+    thread_core_mapping_[i] = core_id;
+    thread_node_mapping_[i] = node_id;
+    thread_phycore_mapping_[i] = phycore_id;
+    printf("Thread %d mapped to core %d (phycore %d) on node %d\n", i, core_id, phycore_id, node_id);
+  }  
+}
+
+int ThreadPool::GetThreadCoreAffinity(unsigned thread_id) const {
+  if (thread_core_mapping_ != NULL && thread_id < n_threads_)
+    return thread_core_mapping_[thread_id];
+  else
+    return -1;
+}
+
+int ThreadPool::GetThreadPhyCoreAffinity(unsigned thread_id) const {
+  if (thread_phycore_mapping_ != NULL && thread_id < n_threads_)
+    return thread_phycore_mapping_[thread_id];
+  else
+    return -1;
+}
+
+int ThreadPool::GetThreadNodeAffinity(unsigned thread_id) const {
+  if (thread_node_mapping_ != NULL && thread_id < n_threads_)
+    return thread_node_mapping_[thread_id];
+  else
+    return -1;
+}
+
 void ThreadPool::BindToCPU(ThreadMeta &meta) {
   struct bitmask * cpu_mask;
-  int node = -1;
-  int ht_id = meta.thread_id / nphycpus_;
-  int coreid = meta.thread_id % nphycpus_; 
-  int i;
-  for (i = 0; i <= coreid; i += cpuids_[++node].size());
-  i = coreid - i + cpuids_[node].size();
-  // printf("i = %d, node = %d, ht_id = %d, coreid = %d\n", i, node, ht_id, coreid);
-  int cpu = cpuids_[node][i][ht_id % cpuids_[node][i].size()];
+  int cpu = thread_core_mapping_[meta.thread_id];
   printf("Binding thread %d to CPU %d\n", meta.thread_id, cpu);
   cpu_mask = numa_allocate_cpumask();
   numa_bitmask_setbit(cpu_mask, cpu);
   numa_sched_setaffinity(0, cpu_mask);
   numa_free_cpumask(cpu_mask);
+}
+
+void ThreadPool::AssignThreadAffinity(unsigned thread_id, int * node_id, int * core_id, int * phycore_id) {
+  int node = -1;
+  int ht_id = thread_id / nphycpus_;
+  int coreid = thread_id % nphycpus_; 
+  int i;
+  for (i = 0; i <= coreid; i += cpuids_[++node].size());
+  i = coreid - i + cpuids_[node].size();
+  // printf("i = %d, node = %d, ht_id = %d, coreid = %d\n", i, node, ht_id, coreid);
+  int core = cpuids_[node][i][ht_id % cpuids_[node][i].size()];
+  int phycore = cpuids_[node][i][0];
+  *node_id = node;
+  *core_id = core;
+  *phycore_id = phycore;
 }
 
 void ThreadPool::ThreadLoop(ThreadMeta &meta) {

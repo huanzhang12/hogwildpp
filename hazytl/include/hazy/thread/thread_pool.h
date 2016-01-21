@@ -45,7 +45,9 @@ class ThreadPool {
    * \param n_threads Number of threads
    */
   explicit ThreadPool(unsigned n_threads) : n_threads_(n_threads), 
-      threads_(NULL) { }
+      threads_(NULL), cpuids_(NULL), 
+      thread_core_mapping_(NULL), thread_node_mapping_(NULL),
+      thread_phycore_mapping_(NULL) { }
 
   virtual ~ThreadPool();
 
@@ -92,6 +94,10 @@ class ThreadPool {
   unsigned NodeCount() const { return nnodes_;}
   unsigned PhyCPUCound() const { return nphycpus_; }
   const std::vector<std::vector<int> > * Topology() const { return cpuids_; }
+  int GetThreadCoreAffinity(unsigned thread_id) const; 
+  int GetThreadNodeAffinity(unsigned thread_id) const;
+  int GetThreadPhyCoreAffinity(unsigned thread_id) const;
+
  private:
   unsigned n_threads_; //!< number of thrads in the pool
   barrier_t ready_; //!< wait for a task to work on
@@ -107,8 +113,13 @@ class ThreadPool {
   unsigned nnodes_;
   unsigned nphycpus_;
   std::vector<std::vector<int> > * cpuids_; 
+  int * thread_core_mapping_;
+  int * thread_node_mapping_;
+  int * thread_phycore_mapping_;
   void BindToCPU(ThreadMeta &meta);
   void GetTopology();
+  void AssignThreadAffinity(unsigned thread_id, int * node_id, int * core_id, int * phycore_id);
+  void ConfigThreadAffinity(); 
   
   /*! \brief tell all the threads to exit safely (at some point) */
   void SetExitFlags(bool flag) {
