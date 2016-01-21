@@ -25,7 +25,7 @@
 
 #include "frontend_util.h"
 
-#include "svm/svmmodel.h"
+#include "numasvm/svmmodel.h"
 #include "svm/svm_loader.h"
 #include "numasvm/svm_exec.h"
 
@@ -54,6 +54,30 @@ size_t NumaLoadSVMExamples(Scan &scan, vector::FVector<SVMExample> * nodeex, uns
   numa_run_on_node(-1);
   numa_set_preferred(-1);
   return nfeats;
+}
+
+void CreateNumaSVMModel(NumaSVMModel * node_m, size_t nfeats, unsigned nnodes, unsigned nthreads) {
+  numa_run_on_node(0);
+  numa_set_preferred(0);
+  int * atomic_ptr = new int;
+  int atomic_mask = (1 << (sizeof(int) * 8 - __builtin_clz(nnodes))) - 1;
+  printf("Model array allocated at %p\n", node_m);
+  for (unsigned i = 0; i < nnodes; ++i) {
+    numa_run_on_node(i);
+    numa_set_preferred(i);
+    printf("Allocating memory for core %d\n", i);
+    node_m[i].AllocateModel(nfeats);
+    node_m[i].atomic_ptr = atomic_ptr;
+    node_m[i].atomic_mask = atomic_mask;
+    if (i == nnodes - 1) {
+      node_m[i].atomic_inc_value = atomic_mask - nthreads + 1;
+    }
+    else {
+      node_m[i].atomic_inc_value = 1;
+    }
+  }
+  numa_run_on_node(-1);
+  numa_set_preferred(-1);
 }
 
 int main(int argc, char** argv) {
@@ -166,9 +190,13 @@ int main(int argc, char** argv) {
   tp.ndim = nfeats;
 
 //  hogwild::freeforall::FeedTrainTest(memfeed.GetTrough(), nepochs, nthreads);
-  SVMModel m(nfeats);
+  NumaSVMModel * node_m;
+  node_m = new NumaSVMModel[nnodes];
+  CreateNumaSVMModel(node_m, nfeats, nnodes, nthreads); 
+  NumaSVMModel m;
+  m.AllocateModel(nfeats);
   NumaMemoryScan<SVMExample> mscan(node_train_examps, nnodes);
-  Hogwild<SVMModel, SVMParams, NumaSVMExec>  hw(m, tp, tpool);
+  Hogwild<NumaSVMModel, SVMParams, NumaSVMExec>  hw(node_m[0], tp, tpool);
   NumaMemoryScan<SVMExample> tscan(node_test_examps, nnodes);
 
   hw.RunExperiment(nepochs, wall_clock, mscan, tscan);

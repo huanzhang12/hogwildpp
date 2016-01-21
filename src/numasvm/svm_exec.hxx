@@ -22,12 +22,13 @@
 
 #include <numa.h>
 #include <sched.h>
+#include <cstdio>
 
 namespace hazy {
 namespace hogwild {
 namespace svm {
 
-fp_type inline ComputeLoss(const SVMExample &e, const SVMModel& model) {
+fp_type inline ComputeLoss(const SVMExample &e, const NumaSVMModel& model) {
   // determine how far off our model is for this example
   vector::FVector<fp_type> const &w = model.weights;
   fp_type dot = vector::Dot(w, e.vector);
@@ -35,7 +36,7 @@ fp_type inline ComputeLoss(const SVMExample &e, const SVMModel& model) {
 }
 
 void inline ModelUpdate(const SVMExample &examp, const SVMParams &params, 
-                 SVMModel *model) {
+                 NumaSVMModel *model) {
   vector::FVector<fp_type> &w = model->weights;
 
   // evaluate this example
@@ -60,7 +61,7 @@ void inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
   }
 }
 
-void NumaSVMExec::PostUpdate(SVMModel &model, SVMParams &params) {
+void NumaSVMExec::PostUpdate(NumaSVMModel &model, SVMParams &params) {
   // Reduce the step size to encourage convergence
   params.step_size *= params.step_decay;
 }
@@ -74,7 +75,7 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
 
   int node = GetNumaNode();
   // TODO: per core model vector 
-  SVMModel  &model = *task.model;
+  NumaSVMModel  &model = *task.model;
 
   SVMParams const &params = *task.params;
   // Select the example vector array based on current node
@@ -86,9 +87,9 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
   // Seclect the pointers based on current node
   size_t *perm = task.block[node].perm.values;
   SVMExample const * const examps = exampsvec.values;
-  SVMModel * const m = &model;
+  NumaSVMModel * const m = &model;
   // individually update the model for each example
-  printf("UpdateModel: thread id %d on node %d updating model %p from %lu to %lu\n", tid, node, exampsvec.values, start, end);
+  printf("UpdateModel: thread id %d on node %d updating model %p, data %p from %lu to %lu\n", tid, node, m->weights.values, exampsvec.values, start, end);
   for (unsigned i = start; i < end; i++) {
     size_t indirect = perm[i];
     ModelUpdate(examps[indirect], params, m);
@@ -98,7 +99,7 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
 
 double NumaSVMExec::TestModel(SVMTask &task, unsigned tid, unsigned total) {
   int node = GetNumaNode();
-  SVMModel const &model = *task.model;
+  NumaSVMModel const &model = *task.model;
 
   //SVMParams const &params = *task.params;
   // Select the example vector array based on current node

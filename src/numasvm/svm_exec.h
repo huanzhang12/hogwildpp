@@ -23,7 +23,7 @@
 
 #include "hazy/hogwild/hogwild_task.h"
 
-#include "../svm/svmmodel.h"
+#include "svmmodel.h"
 
 namespace hazy {
 namespace hogwild {
@@ -31,10 +31,10 @@ namespace svm {
 
 //! Changes the model using the given example 
 void inline ModelUpdate(const SVMExample &examp, const SVMParams &params, 
-                 SVMModel *model, size_t &updates, size_t &count);
+                 NumaSVMModel *model, size_t &updates, size_t &count);
 
 //! Returns the loss for the given example and model
-fp_type inline ComputeLoss(const SVMExample &e, const SVMModel& model);
+fp_type inline ComputeLoss(const SVMExample &e, const NumaSVMModel& model);
 
 //! Container for methods to train and test an SVM
 class NumaSVMExec {
@@ -59,9 +59,9 @@ class NumaSVMExec {
   static double TestModel(SVMTask &task, unsigned tid, unsigned total);
 
   //! Invoked after each training epoch, causes the stepsize to decay
-  static void PostUpdate(SVMModel &model, SVMParams &params);
+  static void PostUpdate(NumaSVMModel &model, SVMParams &params);
 
-  static void PostEpoch(SVMModel &model, SVMParams &params) {
+  static void PostEpoch(NumaSVMModel &model, SVMParams &params) {
   }
  private:
   static int GetNumaNode();
