@@ -40,9 +40,12 @@ typedef double fp_type;
 struct NumaSVMModel {
   //! The weight vector that is trained
   vector::FVector<fp_type> weights;
+  vector::FVector<fp_type> delta_weights;
   int * atomic_ptr;
   int atomic_inc_value;
   int atomic_mask;
+  int * thread_to_weights_mapping;
+  int * next_weights;
 
   //! Construct a weight vector of length dim backed by the buffer
   /*! A new model backed by the buffer.
@@ -55,9 +58,12 @@ struct NumaSVMModel {
   void AllocateModel(unsigned dim) {
     weights.size = dim;
     weights.values = new fp_type[dim];
+    delta_weights.size = dim;
+    delta_weights.values = new fp_type[dim];
     printf("Allocated w at %p\n", weights.values);
     for (unsigned i = dim; i-- > 0; ) {
       weights.values[i] = 0;
+      delta_weights.values[i] = 0;
     }
   }
 
@@ -75,6 +81,7 @@ struct NumaSVMModel {
   void CopyFrom(NumaSVMModel const &m) {
     assert(weights.size == m.weights.size);
     vector::CopyInto(m.weights, weights);
+    vector::CopyInto(m.delta_weights, delta_weights);
   }
 
   /*! Creates a deep copy of this model, caller must free.

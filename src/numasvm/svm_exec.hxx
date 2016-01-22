@@ -38,6 +38,8 @@ fp_type inline ComputeLoss(const SVMExample &e, const NumaSVMModel& model) {
 void inline ModelUpdate(const SVMExample &examp, const SVMParams &params, 
                  NumaSVMModel *model) {
   vector::FVector<fp_type> &w = model->weights;
+  // int atomic_inc_value = m->atomic_inc_value;
+  // int atomic_mask = m->atomic_mask;
 
   // evaluate this example
   fp_type wxy = vector::Dot(w, examp.vector);
@@ -87,9 +89,16 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
   // Seclect the pointers based on current node
   size_t *perm = task.block[node].perm.values;
   SVMExample const * const examps = exampsvec.values;
-  NumaSVMModel * const m = &model;
   // individually update the model for each example
-  printf("UpdateModel: thread id %d on node %d updating model %p, data %p from %lu to %lu\n", tid, node, m->weights.values, exampsvec.values, start, end);
+  int weights_index = model.thread_to_weights_mapping[tid];
+  int next_weights = model.next_weights[tid];
+  NumaSVMModel * const m = &task.model[weights_index];
+  int atomic_inc_value = m->atomic_inc_value;
+  int atomic_mask = m->atomic_mask;
+  printf("UpdateModel: thread id %d on node %d using data %p from %lu to %lu,"
+         "and model %d->%d at %p, (atomic+%d) & %x\n", 
+         tid, node, exampsvec.values, start, end, weights_index, next_weights,
+         m->weights.values, atomic_inc_value, atomic_mask);
   for (unsigned i = start; i < end; i++) {
     size_t indirect = perm[i];
     ModelUpdate(examps[indirect], params, m);

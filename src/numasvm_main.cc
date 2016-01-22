@@ -56,21 +56,52 @@ size_t NumaLoadSVMExamples(Scan &scan, vector::FVector<SVMExample> * nodeex, uns
   return nfeats;
 }
 
-void CreateNumaSVMModel(NumaSVMModel * node_m, size_t nfeats, unsigned nnodes, unsigned nthreads) {
+void CreateNumaSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::ThreadPool &tpool, unsigned nthreads) {
+  // Build the weight update chain
+  int * thread_to_weights_mapping = new int[nthreads];
+  int * next_weights = new int[nthreads];
+  /* weight update policy: 
+     Hyper-threaded core: update the same set of weights in the same physical core;
+     Physical core: has a unique set of weights
+  */
+  for (unsigned i = 0; i < nthreads; ++i) {
+    thread_to_weights_mapping[i] = tpool.GetThreadPhyCoreAffinity(i);
+  }
+  /* next-weight policy:
+     Hyper-threaded core: Do not update next set of weights.
+     Physical core: update the weights of next core, only cross node boundary once
+  */
+  unsigned phycpu_count = tpool.PhyCPUCount();
+  unsigned weights_count = nthreads > phycpu_count ? phycpu_count : nthreads;
+  for (unsigned i = 0; i < nthreads; ++i) {
+    int phy_core = tpool.GetThreadPhyCoreAffinity(i);
+    int logical_core = tpool.GetThreadCoreAffinity(i);
+    if (phy_core == logical_core) {
+      next_weights[i] = (phy_core + 1) % weights_count;
+    }
+    else {
+      next_weights[i] = -1;
+    }
+  }
+  /* Now create the Model array 
+  */
   numa_run_on_node(0);
   numa_set_preferred(0);
   int * atomic_ptr = new int;
-  int atomic_mask = (1 << (sizeof(int) * 8 - __builtin_clz(nnodes))) - 1;
+  int atomic_mask = (1 << (sizeof(int) * 8 - (weights_count - 1 ? __builtin_clz(weights_count - 1) : 32))) - 1;
+  node_m = new NumaSVMModel[weights_count];
   printf("Model array allocated at %p\n", node_m);
-  for (unsigned i = 0; i < nnodes; ++i) {
+  for (unsigned i = 0; i < weights_count; ++i) {
     numa_run_on_node(i);
     numa_set_preferred(i);
     printf("Allocating memory for core %d\n", i);
     node_m[i].AllocateModel(nfeats);
     node_m[i].atomic_ptr = atomic_ptr;
     node_m[i].atomic_mask = atomic_mask;
-    if (i == nnodes - 1) {
-      node_m[i].atomic_inc_value = atomic_mask - nthreads + 1;
+    node_m[i].thread_to_weights_mapping = thread_to_weights_mapping;
+    node_m[i].next_weights = next_weights;
+    if (i == weights_count - 1) {
+      node_m[i].atomic_inc_value = atomic_mask - weights_count + 2;
     }
     else {
       node_m[i].atomic_inc_value = 1;
@@ -191,8 +222,7 @@ int main(int argc, char** argv) {
 
 //  hogwild::freeforall::FeedTrainTest(memfeed.GetTrough(), nepochs, nthreads);
   NumaSVMModel * node_m;
-  node_m = new NumaSVMModel[nnodes];
-  CreateNumaSVMModel(node_m, nfeats, nnodes, nthreads); 
+  CreateNumaSVMModel(node_m, nfeats, tpool, nthreads); 
   NumaSVMModel m;
   m.AllocateModel(nfeats);
   NumaMemoryScan<SVMExample> mscan(node_train_examps, nnodes);
