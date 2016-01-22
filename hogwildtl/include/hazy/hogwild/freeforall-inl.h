@@ -186,7 +186,6 @@ template <class HogwildTask_t>
 void FreeForAll(HogwildTask_t &task, hazy::thread::ThreadPool &tpool,
                 double (*hook)(HogwildTask_t&, unsigned, unsigned),
                 vector::FVector<double> &result) {
-  printf("Free for all!\n");
   if (result.size < tpool.ThreadCount()) {
     printf("#threads = %u, size = %lu\n", tpool.ThreadCount(), result.size);
   }

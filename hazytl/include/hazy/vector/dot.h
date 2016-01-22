@@ -28,11 +28,24 @@ template <typename float_u, typename float_v>
 float_u inline Dot(FVector<float_u> const&, SVector<float_v> const&);
 
 
+/*! \brief Compute the dot product, missing entries in the SVector are assumed 0.
+ * \return the dot product.
+ */
+template <typename float_u, typename float_v>
+float_u inline AddAndDot(FVector<float_u> const&, FVector<float_u> const&, SVector<float_v> const&);
+
 /*! \brief Compute the dot product, assumes the vectors are the same length.
  * \return the dot product.
  */
 template <typename float_u, typename float_v>
 float_u inline Dot(FVector<float_u> const&, FVector<float_v> const&);
+
+
+/*! \brief Compute the dot product, assumes the vectors are the same length.
+ * \return the dot product.
+ */
+template <typename float_u, typename float_v>
+float_u inline AddAndDot(FVector<float_u> const&, FVector<float_u> const&, FVector<float_v> const&);
 
 /*! \brief Compute the dot product, assumes missing entries are zero.
  * \return the dot product.

@@ -51,12 +51,39 @@ float_u inline Dot(FVector<float_u> const& u, SVector<float_v> const& v) {
 }
 
 template <typename float_u, typename float_v>
+float_u inline AddAndDot(FVector<float_u> const& u1, FVector<float_u> const& u2, SVector<float_v> const& v) {
+  float_u p = 0.0;
+  float_u const * const /*__restrict__*/ u1vals = u1.values;
+  float_u const * const /*__restrict__*/ u2vals = u2.values;
+  float_v const * const /*__restrict__*/ vvals = v.values;
+  int const * const /*__restrict__*/ vidx = v.index;
+  for (size_t i = v.size; i-- > 0; ) {
+    int const idx = vidx[i];
+    p += (u1vals[idx] + u2vals[idx]) * vvals[i]; 
+  }
+  return p;
+}
+
+template <typename float_u, typename float_v>
 float_u inline Dot(FVector<float_u> const &u, FVector<float_v> const &v) {
   float_u p = 0.0;
   float_u const * const /*__restrict__*/ uvals = u.values;
   float_v const * const /*__restrict__*/ vvals = v.values;
   for (size_t i = v.size; i-- > 0; ) {
     p += uvals[i] * vvals[i]; 
+  }
+  return p;
+}
+
+
+template <typename float_u, typename float_v>
+float_u inline AddAndDot(FVector<float_u> const &u1, FVector<float_u> const &u2, FVector<float_v> const &v) {
+  float_u p = 0.0;
+  float_u const * const /*__restrict__*/ u1vals = u1.values;
+  float_u const * const /*__restrict__*/ u2vals = u2.values;
+  float_v const * const /*__restrict__*/ vvals = v.values;
+  for (size_t i = v.size; i-- > 0; ) {
+    p += (u1vals[i] + u2vals[i]) * vvals[i]; 
   }
   return p;
 }

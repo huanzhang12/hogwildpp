@@ -36,30 +36,50 @@ fp_type inline ComputeLoss(const SVMExample &e, const NumaSVMModel& model) {
 }
 
 void inline ModelUpdate(const SVMExample &examp, const SVMParams &params, 
-                 NumaSVMModel *model) {
+                 NumaSVMModel *model, NumaSVMModel *next_model, int tid) {
   vector::FVector<fp_type> &w = model->weights;
-  // int atomic_inc_value = m->atomic_inc_value;
-  // int atomic_mask = m->atomic_mask;
+  vector::FVector<fp_type> &dw = model->delta_weights;
 
   // evaluate this example
-  fp_type wxy = vector::Dot(w, examp.vector);
+  // fp_type wxy = vector::Dot(w, examp.vector);
+  fp_type wxy = vector::AddAndDot(w, dw, examp.vector);
   wxy = wxy * examp.value;
 
   if (wxy < 1) { // hinge is active.
     fp_type const e = params.step_size * examp.value;
-    vector::ScaleAndAdd(w, examp.vector, e);
+    // vector::ScaleAndAdd(w, examp.vector, e);
+    vector::ScaleAndAdd(dw, examp.vector, e);
   }
 
   fp_type * const vals = w.values;
+  fp_type * const dvals = dw.values;
   unsigned const * const degs = params.degrees;
   size_t const size = examp.vector.size;
-
   // update based on the evaluation
   fp_type const scalar = params.step_size * params.mu;
   for (int i = size; i-- > 0; ) {
     int const j = examp.vector.index[i];
     unsigned const deg = degs[j];
-    vals[j] *= 1 - scalar / deg;
+    // vals[j] *= (1 - scalar / deg);
+    dvals[j] = dvals[j] * (1 - scalar / deg) - vals[j] * (scalar / deg);
+  }
+  // update dw to the other thread
+  if (model->GetAtomic() == tid) { // TODO: this should be physical cpu number
+    if (next_model) {
+      fp_type * const next_vals = next_model->weights.values;
+      for (unsigned i = 0; i < dw.size; ++i) {
+        if (fabs(dvals[i]) > 1e-7) {
+	  fp_type new_wi = next_vals[i] + dvals[i];
+	  next_vals[i] = new_wi;
+	  vals[i] = new_wi;
+	  dvals[i] = 0;
+        }
+        else {
+          vals[i] = next_vals[i];
+        }
+      }
+      model->IncAtomic();
+    }
   }
 }
 
@@ -93,16 +113,21 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
   int weights_index = model.thread_to_weights_mapping[tid];
   int next_weights = model.next_weights[tid];
   NumaSVMModel * const m = &task.model[weights_index];
+  NumaSVMModel * const next_m = next_weights >= 0 ? &task.model[next_weights] : NULL;
   int atomic_inc_value = m->atomic_inc_value;
   int atomic_mask = m->atomic_mask;
   printf("UpdateModel: thread id %d on node %d using data %p from %lu to %lu,"
-         "and model %d->%d at %p, (atomic+%d) & %x\n", 
+         "and model %d->%d at %p->%p, (atomic+%d) & %x\n", 
          tid, node, exampsvec.values, start, end, weights_index, next_weights,
-         m->weights.values, atomic_inc_value, atomic_mask);
+         m->weights.values, next_weights >= 0 ? next_m->weights.values: NULL, 
+         atomic_inc_value, atomic_mask);
   for (unsigned i = start; i < end; i++) {
     size_t indirect = perm[i];
-    ModelUpdate(examps[indirect], params, m);
+    ModelUpdate(examps[indirect], params, m, next_m, tid);
   }
+  
+  vector::ScaleAndAdd(m->weights, m->delta_weights, 1);
+  
   return 0.0;
 }
 

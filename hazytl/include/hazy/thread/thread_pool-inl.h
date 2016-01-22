@@ -191,7 +191,7 @@ int ThreadPool::GetThreadNodeAffinity(unsigned thread_id) const {
 void ThreadPool::BindToCPU(ThreadMeta &meta) {
   struct bitmask * cpu_mask;
   int cpu = thread_core_mapping_[meta.thread_id];
-  printf("Binding thread %d to CPU %d\n", meta.thread_id, cpu);
+  // printf("Binding thread %d to CPU %d\n", meta.thread_id, cpu);
   cpu_mask = numa_allocate_cpumask();
   numa_bitmask_setbit(cpu_mask, cpu);
   numa_sched_setaffinity(0, cpu_mask);
@@ -231,12 +231,12 @@ void ThreadPool::ThreadCallback(unsigned thread_id) {
   Task *t = static_cast<Task*>(arg_);
   void (*hook)(Task&, unsigned, unsigned) = reinterpret_cast<
       void (*)(Task&, unsigned, unsigned)>(hook_);
-  int cpu;
-  cpu = sched_getcpu();
-  printf("This is thread %u, running on CPU %d\n", thread_id, cpu);
+  // int cpu;
+  // cpu = sched_getcpu();
+  // printf("This is thread %u, running on CPU %d\n", thread_id, cpu);
   hook(*t, thread_id, n_threads_);
-  cpu = sched_getcpu();
-  printf("Thread %u exiting hook, running on CPU %d\n", thread_id, cpu);
+  // cpu = sched_getcpu();
+  // printf("Thread %u exiting hook, running on CPU %d\n", thread_id, cpu);
 }
 
 template <class Task>
