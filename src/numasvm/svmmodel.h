@@ -24,6 +24,7 @@
 #include "hazy/vector/operations-inl.h"
 
 #include "hazy/hogwild/hogwild_task.h"
+#include "hazy/thread/thread_pool.h"
 
 #include <cstdio>
 
@@ -40,7 +41,7 @@ typedef double fp_type;
 struct NumaSVMModel {
   //! The weight vector that is trained
   vector::FVector<fp_type> weights;
-  vector::FVector<fp_type> delta_weights;
+  vector::FVector<fp_type> old_weights;
   int * atomic_ptr;
   int atomic_inc_value;
   int atomic_mask;
@@ -58,12 +59,12 @@ struct NumaSVMModel {
   void AllocateModel(unsigned dim) {
     weights.size = dim;
     weights.values = new fp_type[dim];
-    delta_weights.size = dim;
-    delta_weights.values = new fp_type[dim];
+    old_weights.size = dim;
+    old_weights.values = new fp_type[dim];
     printf("Allocated w at %p\n", weights.values);
     for (unsigned i = dim; i-- > 0; ) {
       weights.values[i] = 0;
-      delta_weights.values[i] = 0;
+      old_weights.values[i] = 0;
     }
   }
 
@@ -71,7 +72,7 @@ struct NumaSVMModel {
     __sync_fetch_and_add(atomic_ptr, atomic_inc_value);
   }
 
-  inline int GetAtomic() {
+  inline int GetAtomic() const {
     return *atomic_ptr & atomic_mask;
   }
 
@@ -81,7 +82,7 @@ struct NumaSVMModel {
   void CopyFrom(NumaSVMModel const &m) {
     assert(weights.size == m.weights.size);
     vector::CopyInto(m.weights, weights);
-    vector::CopyInto(m.delta_weights, delta_weights);
+    vector::CopyInto(m.old_weights, old_weights);
   }
 
   /*! Creates a deep copy of this model, caller must free.
@@ -102,10 +103,10 @@ struct SVMParams {
   float step_decay; //!< factor to modify step_size by each epoch
   unsigned const *degrees; //!< degree of each feature
   unsigned ndim; //!< number of features, length of degrees
-
+  hazy::thread::ThreadPool * tpool;
   //! Constructs a enw set of params
-  SVMParams(fp_type stepsize, fp_type stepdecay, fp_type _mu) :
-      mu(_mu), step_size(stepsize), step_decay(stepdecay) { }
+  SVMParams(fp_type stepsize, fp_type stepdecay, fp_type _mu, hazy::thread::ThreadPool * tpool) :
+      mu(_mu), step_size(stepsize), step_decay(stepdecay) , tpool(tpool) { }
 };
 
 //! A single example which is a value/rating and a vector

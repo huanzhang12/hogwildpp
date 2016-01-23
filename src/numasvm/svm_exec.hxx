@@ -35,8 +35,9 @@ fp_type inline ComputeLoss(const SVMExample &e, const NumaSVMModel& model) {
   return std::max(1 - dot * e.value, static_cast<fp_type>(0.0));
 }
 
-void inline ModelUpdate(const SVMExample &examp, const SVMParams &params, 
-                 NumaSVMModel *model, NumaSVMModel *next_model, int tid) {
+int inline ModelUpdate(const SVMExample &examp, const SVMParams &params, 
+                 NumaSVMModel *model, NumaSVMModel *next_model, int tid, bool &allow_update) {
+  int sync_counter = 0;
   vector::FVector<fp_type> &w = model->weights;
   // vector::FVector<fp_type> &dw = model->delta_weights;
 
@@ -64,12 +65,12 @@ void inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
     // dvals[j] = dvals[j] * (1 - scalar / deg) - vals[j] * (scalar / deg);
   }
   // update dw to the other thread
-  if (model->GetAtomic() == tid) { // TODO: this should be physical cpu number
+  if (model->GetAtomic() == tid && allow_update) { // TODO: this should be physical cpu number
+    allow_update = false;
     if (next_model) {
-      fp_type * const old_vals = model->delta_weights.values;
+      fp_type * const old_vals = model->old_weights.values;
       fp_type * const next_vals = next_model->weights.values;
-      fp_type * const next_old_vals = next_model->delta_weights.values;
-      int counter = 0;
+      fp_type * const next_old_vals = next_model->old_weights.values;
       for (unsigned i = 0; i < w.size; ++i) {
         fp_type wi = vals[i];
         fp_type delta = wi - old_vals[i];
@@ -81,17 +82,18 @@ void inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
           old_vals[i] = new_wi;
           next_old_vals[i] += delta;
 	  // dvals[i] = 0;
-          counter++;
+          sync_counter++;
         }
         else {
 	  vals[i] = next + delta;
           old_vals[i] = next;
         }
       }
-      // printf("%d:%d/%ld\n", tid, counter, w.size);
       model->IncAtomic();
+      // printf("%d:%d/%ld\n", tid, counter, w.size);
     }
   }
+  return sync_counter;
 }
 
 void NumaSVMExec::PostUpdate(NumaSVMModel &model, SVMParams &params) {
@@ -127,15 +129,19 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
   NumaSVMModel * const next_m = next_weights >= 0 ? &task.model[next_weights] : NULL;
   int atomic_inc_value = m->atomic_inc_value;
   int atomic_mask = m->atomic_mask;
-  printf("UpdateModel: thread id %d on node %d using data %p from %lu to %lu,"
-         "and model %d->%d at %p->%p, (atomic+%d) & %x\n", 
+  if (0) printf("UpdateModel: thread %d on node %d using %p from %lu to %lu, "
+         "model %d->%d at %p->%p, (atomic+%d) & %x\n", 
          tid, node, exampsvec.values, start, end, weights_index, next_weights,
          m->weights.values, next_weights >= 0 ? next_m->weights.values: NULL, 
          atomic_inc_value, atomic_mask);
+  int counter = 0;
+  bool allow_update = false;
   for (unsigned i = start; i < end; i++) {
     size_t indirect = perm[i];
-    ModelUpdate(examps[indirect], params, m, next_m, tid);
+    allow_update = allow_update || ((i & 0xfff) == (0xfff * tid / total));
+    counter += ModelUpdate(examps[indirect], params, m, next_m, tid, allow_update);
   }
+  // printf("UpdateModel: thread %d, %d/%lu elements copied.\n", tid, counter, model.weights.size);
   
   // vector::ScaleAndAdd(m->weights, m->delta_weights, 1);
   
@@ -144,7 +150,15 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
 
 double NumaSVMExec::TestModel(SVMTask &task, unsigned tid, unsigned total) {
   int node = GetNumaNode();
-  NumaSVMModel const &model = *task.model;
+  NumaSVMModel const &model_head = *task.model;
+  int latest_index = model_head.GetAtomic() - 1;
+  if (latest_index == -1) {
+    unsigned nphycpus = task.params->tpool->PhyCPUCount();
+    latest_index = total > nphycpus ? nphycpus : total;
+    latest_index -= 1;
+  }
+  if (tid == 0) printf("Using model index %d to test\n", latest_index);
+  NumaSVMModel const &model = task.model[latest_index];
 
   //SVMParams const &params = *task.params;
   // Select the example vector array based on current node

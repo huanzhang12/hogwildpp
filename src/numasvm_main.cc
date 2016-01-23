@@ -171,7 +171,6 @@ int main(int argc, char** argv) {
         break;
     }
   }
-  SVMParams tp (step_size, step_decay, mu);
 
   char * szTestFile, *szExampleFile;
   
@@ -188,6 +187,8 @@ int main(int argc, char** argv) {
   hazy::thread::ThreadPool tpool(nthreads);
   tpool.Init();
   unsigned nnodes = tpool.NodeCount();
+
+  SVMParams tp (step_size, step_decay, mu, &tpool);
   
   vector::FVector<SVMExample> * node_train_examps = new vector::FVector<SVMExample>[nnodes];
   vector::FVector<SVMExample> * node_test_examps = new vector::FVector<SVMExample>[nnodes];
