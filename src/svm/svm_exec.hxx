@@ -76,7 +76,7 @@ double SVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
   SVMExample const * const examps = exampsvec.values;
   SVMModel * const m = &model;
   // individually update the model for each example
-  printf("UpdateModel: thread id %d updating model from %lu to %lu\n", tid, start, end);
+  // printf("UpdateModel: thread id %d updating model from %lu to %lu\n", tid, start, end);
   for (unsigned i = start; i < end; i++) {
     size_t indirect = perm[i];
     ModelUpdate(examps[indirect], params, m);

@@ -83,6 +83,9 @@ void CreateNumaSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::Thr
       next_weights[i] = -1;
     }
   }
+  if (nthreads == 1) {
+    next_weights[0] = -1;
+  }
   /* Now create the Model array 
   */
   numa_run_on_node(0);
