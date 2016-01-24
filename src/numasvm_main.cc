@@ -16,6 +16,7 @@
 // Author : Victor Bittorf (bittorf [at] cs.wisc.edu)
 // Original Hogwild! Author: Chris Re (chrisre [at] cs.wisc.edu)             
 #include <cstdlib>
+#include <cstring>
 #include <numa.h>
 
 #include "hazy/hogwild/hogwild-inl.h"
@@ -45,14 +46,43 @@ using namespace hazy::hogwild::svm;
 template <class Scan>
 size_t NumaLoadSVMExamples(Scan &scan, vector::FVector<SVMExample> * nodeex, unsigned nnodes) { 
   size_t nfeats = 0;
+#if 0
   for (unsigned i = 0; i < nnodes; ++i) {
     scan.Reset();
     numa_run_on_node(i);
     numa_set_preferred(i);
     nfeats = LoadSVMExamples<Scan>(scan, nodeex[i]);
   }
+#else
+  numa_run_on_node(0);
+  numa_set_preferred(0);
+  // The examples on the first node will be loaded from the input file
+  nfeats = LoadSVMExamples<Scan>(scan, nodeex[0]);
+  // Other nodes need a local copy
+  for (unsigned n = 1; n < nnodes; ++n) {
+    // scan.Reset();
+    numa_run_on_node(n);
+    numa_set_preferred(n);
+    nodeex[n].size = nodeex[0].size;
+    nodeex[n].values = new SVMExample[nodeex[n].size];
+    for (size_t i = 0; i < nodeex[n].size; i++) {
+      size_t size = nodeex[0].values[i].vector.size;
+      nodeex[n].values[i].value = nodeex[0].values[i].value;
+      nodeex[n].values[i].vector.size = size;
+      nodeex[n].values[i].vector.index = new int[size];
+      nodeex[n].values[i].vector.values = new fp_type[size];
+      std::memcpy((void *)nodeex[n].values[i].vector.index, nodeex[0].values[i].vector.index, size * sizeof(int));
+      std::memcpy((void *)nodeex[n].values[i].vector.values, nodeex[0].values[i].vector.values, size * sizeof(fp_type));
+      for (size_t j = 0; j < nodeex[n].values[i].vector.size; j++) {
+	// assert(nodeex[n].values[i].vector.index[j] >= 0);
+	// assert(nodeex[n].values[i].vector.index[j] <= (long int)nfeats - 1);
+      }
+    }
+  }
+#endif
   numa_run_on_node(-1);
-  numa_set_preferred(-1);
+  // numa_set_preferred(-1);
+  numa_set_localalloc();
   return nfeats;
 }
 
@@ -111,7 +141,8 @@ void CreateNumaSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::Thr
     }
   }
   numa_run_on_node(-1);
-  numa_set_preferred(-1);
+  // numa_set_preferred(-1);
+  numa_set_localalloc();
 }
 
 int main(int argc, char** argv) {

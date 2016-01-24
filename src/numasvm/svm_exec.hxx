@@ -129,9 +129,9 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
   NumaSVMModel * const next_m = next_weights >= 0 ? &task.model[next_weights] : NULL;
   int atomic_inc_value = m->atomic_inc_value;
   int atomic_mask = m->atomic_mask;
-  if (0) printf("UpdateModel: thread %d on node %d using %p from %lu to %lu, "
+  if (1) printf("UpdateModel: thread %d on node %d using %p from %lu to %lu, "
          "model %d->%d at %p->%p, (atomic+%d) & %x\n", 
-         tid, node, exampsvec.values, start, end, weights_index, next_weights,
+         tid, node, exampsvec.values[0].vector.values, start, end, weights_index, next_weights,
          m->weights.values, next_weights >= 0 ? next_m->weights.values: NULL, 
          atomic_inc_value, atomic_mask);
   int counter = 0;
