@@ -36,7 +36,7 @@ fp_type inline ComputeLoss(const SVMExample &e, const NumaSVMModel& model) {
 }
 
 int inline ModelUpdate(const SVMExample &examp, const SVMParams &params, 
-                 NumaSVMModel *model, NumaSVMModel *next_model, int tid, bool &allow_update) {
+                 NumaSVMModel *model, NumaSVMModel *next_model, int tid, bool &allow_update_w, int iter, int &update_atomic_counter) {
   int sync_counter = 0;
   vector::FVector<fp_type> &w = model->weights;
   // vector::FVector<fp_type> &dw = model->delta_weights;
@@ -65,9 +65,10 @@ int inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
     // dvals[j] = dvals[j] * (1 - scalar / deg) - vals[j] * (scalar / deg);
   }
   // update dw to the other thread
-  if (model->GetAtomic() == tid && allow_update) { // TODO: this should be physical cpu number
-    allow_update = false;
+  if (allow_update_w && update_atomic_counter == -1 && model->GetAtomic() == tid) { // TODO: this should be physical cpu number
+    allow_update_w = false;
     if (next_model) {
+      update_atomic_counter = 0x3ff;
       fp_type * const old_vals = model->old_weights.values;
       fp_type * const next_vals = next_model->weights.values;
       fp_type * const next_old_vals = next_model->old_weights.values;
@@ -89,8 +90,15 @@ int inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
           old_vals[i] = next;
         }
       }
+      printf("%d(@%d):%d/%ld\n", tid, iter, sync_counter, w.size);
+    }
+  }
+  if (update_atomic_counter != -1) {
+    update_atomic_counter--;
+    if (!update_atomic_counter) {
+      printf("%d(@%d):inc\n", tid, iter);
       model->IncAtomic();
-      // printf("%d:%d/%ld\n", tid, counter, w.size);
+      update_atomic_counter = -1;
     }
   }
   return sync_counter;
@@ -135,12 +143,14 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
          m->weights.values, next_weights >= 0 ? next_m->weights.values: NULL, 
          atomic_inc_value, atomic_mask);
   int counter = 0;
-  bool allow_update = false;
+  int update_atomic_counter = m->update_atomic_counter;
+  bool allow_update_w = false;
   for (unsigned i = start; i < end; i++) {
     size_t indirect = perm[i];
-    allow_update = allow_update || ((i & 0xfff) == (0xfff * tid / total));
-    counter += ModelUpdate(examps[indirect], params, m, next_m, tid, allow_update);
+    allow_update_w = allow_update_w || ((i & 0x3ff) == (0x3ff * (tid + 1) / total));
+    counter += ModelUpdate(examps[indirect], params, m, next_m, tid, allow_update_w, i - start, update_atomic_counter);
   }
+  m->update_atomic_counter = update_atomic_counter;
   // printf("UpdateModel: thread %d, %d/%lu elements copied.\n", tid, counter, model.weights.size);
   
   // vector::ScaleAndAdd(m->weights, m->delta_weights, 1);
