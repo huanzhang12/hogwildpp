@@ -68,35 +68,36 @@ int inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
   if (allow_update_w && update_atomic_counter == -1 && model->GetAtomic() == tid) { // TODO: this should be physical cpu number
     allow_update_w = false;
     if (next_model) {
-      update_atomic_counter = 0x3ff;
+      update_atomic_counter = 0xff;
       fp_type * const old_vals = model->old_weights.values;
       fp_type * const next_vals = next_model->weights.values;
       fp_type * const next_old_vals = next_model->old_weights.values;
       for (unsigned i = 0; i < w.size; ++i) {
         fp_type wi = vals[i];
         fp_type delta = wi - old_vals[i];
-        fp_type next = next_vals[i];
-        if (fabs(delta) > 1e-1) {
-	  fp_type new_wi = next + delta;
+        if (fabs(delta) > 1e-2) {
+	  fp_type next = next_vals[i];
+	  fp_type new_wi = next + 0.618*delta;
 	  next_vals[i] = new_wi;
 	  vals[i] = new_wi;
           old_vals[i] = new_wi;
-          next_old_vals[i] += delta;
+          // next_old_vals[i] -= 0.5*delta;
 	  // dvals[i] = 0;
           sync_counter++;
         }
         else {
+	  fp_type next = next_vals[i];
 	  vals[i] = next + delta;
           old_vals[i] = next;
         }
       }
-      printf("%d(@%d):%d/%ld\n", tid, iter, sync_counter, w.size);
+      // printf("%d(@%d):%d/%ld\n", tid, iter, sync_counter, w.size);
     }
   }
   if (update_atomic_counter != -1) {
     update_atomic_counter--;
     if (!update_atomic_counter) {
-      printf("%d(@%d):inc\n", tid, iter);
+      // printf("%d(@%d):inc\n", tid, iter);
       model->IncAtomic();
       update_atomic_counter = -1;
     }
@@ -137,7 +138,7 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
   NumaSVMModel * const next_m = next_weights >= 0 ? &task.model[next_weights] : NULL;
   int atomic_inc_value = m->atomic_inc_value;
   int atomic_mask = m->atomic_mask;
-  if (1) printf("UpdateModel: thread %d on node %d using %p from %lu to %lu, "
+  if (0) printf("UpdateModel: thread %d on node %d using %p from %lu to %lu, "
          "model %d->%d at %p->%p, (atomic+%d) & %x\n", 
          tid, node, exampsvec.values[0].vector.values, start, end, weights_index, next_weights,
          m->weights.values, next_weights >= 0 ? next_m->weights.values: NULL, 
@@ -147,7 +148,7 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
   bool allow_update_w = false;
   for (unsigned i = start; i < end; i++) {
     size_t indirect = perm[i];
-    allow_update_w = allow_update_w || ((i & 0x3ff) == (0x3ff * (tid + 1) / total));
+    allow_update_w = allow_update_w || ((i & 0xff) == (0xff * (tid + 1) / total));
     counter += ModelUpdate(examps[indirect], params, m, next_m, tid, allow_update_w, i - start, update_atomic_counter);
   }
   m->update_atomic_counter = update_atomic_counter;
@@ -167,7 +168,7 @@ double NumaSVMExec::TestModel(SVMTask &task, unsigned tid, unsigned total) {
     latest_index = total > nphycpus ? nphycpus : total;
     latest_index -= 1;
   }
-  if (tid == 0) printf("Using model index %d to test\n", latest_index);
+  // if (tid == 0) printf("Using model index %d to test\n", latest_index);
   NumaSVMModel const &model = task.model[latest_index];
 
   //SVMParams const &params = *task.params;
