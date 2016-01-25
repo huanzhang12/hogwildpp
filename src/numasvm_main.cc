@@ -86,6 +86,27 @@ size_t NumaLoadSVMExamples(Scan &scan, vector::FVector<SVMExample> * nodeex, uns
   return nfeats;
 }
 
+fp_type SolveBeta(int n) {
+  fp_type start = 0.6;
+  fp_type end = 1.0;
+  fp_type mid = 0.5;
+  fp_type err = 0;
+  if (n >= 2) {
+    do {
+      mid = (start + end) / 2;
+      err = pow(mid, n) + mid - 1;
+      if (err > 0) {
+	end = mid; 
+      }
+      else {
+	start = mid;
+      }
+    } while(fabs(err) > 0.001);
+  }
+  printf("Beta for n=%d is %f (err %f)\n", n, mid, err);
+  return mid;
+}
+
 void CreateNumaSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::ThreadPool &tpool, unsigned nthreads) {
   // Build the weight update chain
   int * thread_to_weights_mapping = new int[nthreads];
@@ -125,9 +146,9 @@ void CreateNumaSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::Thr
   node_m = new NumaSVMModel[weights_count];
   printf("Model array allocated at %p\n", node_m);
   for (unsigned i = 0; i < weights_count; ++i) {
-    numa_run_on_node(i);
-    numa_set_preferred(i);
-    printf("Allocating memory for core %d\n", i);
+    numa_run_on_node(numa_node_of_cpu(i));
+    numa_set_preferred(numa_node_of_cpu(i));
+    printf("Allocating memory for core %d at node %d\n", i, numa_node_of_cpu(i));
     node_m[i].AllocateModel(nfeats);
     node_m[i].atomic_ptr = atomic_ptr;
     node_m[i].atomic_mask = atomic_mask;
@@ -218,8 +239,8 @@ int main(int argc, char** argv) {
   hazy::thread::ThreadPool tpool(nthreads);
   tpool.Init();
   unsigned nnodes = tpool.NodeCount();
-
-  SVMParams tp (step_size, step_decay, mu, &tpool);
+  unsigned phycpu_count = tpool.PhyCPUCount();
+  SVMParams tp (step_size, step_decay, mu, SolveBeta(nthreads > phycpu_count ? phycpu_count : nthreads), &tpool);
   
   vector::FVector<SVMExample> * node_train_examps = new vector::FVector<SVMExample>[nnodes];
   vector::FVector<SVMExample> * node_test_examps = new vector::FVector<SVMExample>[nnodes];

@@ -105,10 +105,11 @@ struct SVMParams {
   float step_decay; //!< factor to modify step_size by each epoch
   unsigned const *degrees; //!< degree of each feature
   unsigned ndim; //!< number of features, length of degrees
+  fp_type beta;
   hazy::thread::ThreadPool * tpool;
   //! Constructs a enw set of params
-  SVMParams(fp_type stepsize, fp_type stepdecay, fp_type _mu, hazy::thread::ThreadPool * tpool) :
-      mu(_mu), step_size(stepsize), step_decay(stepdecay) , tpool(tpool) { }
+  SVMParams(fp_type stepsize, fp_type stepdecay, fp_type _mu, fp_type beta, hazy::thread::ThreadPool * tpool) :
+      mu(_mu), step_size(stepsize), step_decay(stepdecay) , beta(beta), tpool(tpool) { }
 };
 
 //! A single example which is a value/rating and a vector
