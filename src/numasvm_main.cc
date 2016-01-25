@@ -90,6 +90,7 @@ void CreateNumaSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::Thr
   // Build the weight update chain
   int * thread_to_weights_mapping = new int[nthreads];
   int * next_weights = new int[nthreads];
+  int * last_weights = new int[nthreads];
   /* weight update policy: 
      Hyper-threaded core: update the same set of weights in the same physical core;
      Physical core: has a unique set of weights
@@ -107,10 +108,14 @@ void CreateNumaSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::Thr
     int phy_core = tpool.GetThreadPhyCoreAffinity(i);
     int logical_core = tpool.GetThreadCoreAffinity(i);
     if (phy_core == logical_core) {
-      next_weights[i] = (phy_core + 1) % weights_count;
+      // next_weights[i] = (phy_core + 1) % weights_count;
+      // last_weights[i] = phy_core ? (phy_core - 1) % weights_count : weights_count - 1;
+      next_weights[i] = weights_count;
+      last_weights[i] = weights_count;
     }
     else {
       next_weights[i] = -1;
+      last_weights[i] = -1;
     }
   }
   if (nthreads == 1) {
@@ -122,7 +127,8 @@ void CreateNumaSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::Thr
   numa_set_preferred(0);
   int * atomic_ptr = new int;
   int atomic_mask = (1 << (sizeof(int) * 8 - (weights_count - 1 ? __builtin_clz(weights_count - 1) : 32))) - 1;
-  node_m = new NumaSVMModel[weights_count];
+  // node_m = new NumaSVMModel[weights_count];
+  node_m = new NumaSVMModel[weights_count + 1];
   printf("Model array allocated at %p\n", node_m);
   for (unsigned i = 0; i < weights_count; ++i) {
     numa_run_on_node(i);
@@ -133,6 +139,7 @@ void CreateNumaSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::Thr
     node_m[i].atomic_mask = atomic_mask;
     node_m[i].thread_to_weights_mapping = thread_to_weights_mapping;
     node_m[i].next_weights = next_weights;
+    node_m[i].last_weights = last_weights;
     if (i == weights_count - 1) {
       node_m[i].atomic_inc_value = atomic_mask - weights_count + 2;
     }
@@ -143,6 +150,7 @@ void CreateNumaSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::Thr
   numa_run_on_node(-1);
   // numa_set_preferred(-1);
   numa_set_localalloc();
+  node_m[weights_count].AllocateModel(nfeats);
 }
 
 int main(int argc, char** argv) {

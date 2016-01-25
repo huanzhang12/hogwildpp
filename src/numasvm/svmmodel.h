@@ -48,6 +48,7 @@ struct NumaSVMModel {
   int update_atomic_counter;
   int * thread_to_weights_mapping;
   int * next_weights;
+  int * last_weights;
 
   //! Construct a weight vector of length dim backed by the buffer
   /*! A new model backed by the buffer.
