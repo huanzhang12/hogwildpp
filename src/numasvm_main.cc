@@ -103,7 +103,8 @@ fp_type SolveBeta(int n) {
       }
     } while(fabs(err) > 0.001);
   }
-  printf("Beta for n=%d is %f (err %f)\n", n, mid, err);
+  if (!n)
+    mid = .0; 
   return mid;
 }
 
@@ -240,7 +241,11 @@ int main(int argc, char** argv) {
   tpool.Init();
   unsigned nnodes = tpool.NodeCount();
   unsigned phycpu_count = tpool.PhyCPUCount();
-  SVMParams tp (step_size, step_decay, mu, SolveBeta(nthreads > phycpu_count ? phycpu_count : nthreads), &tpool);
+  unsigned weights_count = nthreads > phycpu_count ? phycpu_count : nthreads;
+  fp_type beta = SolveBeta(weights_count);
+  fp_type lambda = 1 - pow(beta, weights_count - 1);
+  printf("n=%d, beta=%f, lambda=%f\n", weights_count, beta, lambda);
+  SVMParams tp (step_size, step_decay, mu, beta, lambda, &tpool);
   
   vector::FVector<SVMExample> * node_train_examps = new vector::FVector<SVMExample>[nnodes];
   vector::FVector<SVMExample> * node_test_examps = new vector::FVector<SVMExample>[nnodes];

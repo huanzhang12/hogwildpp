@@ -65,34 +65,34 @@ int inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
     // dvals[j] = dvals[j] * (1 - scalar / deg) - vals[j] * (scalar / deg);
   }
   // update dw to the other thread
-  if (allow_update_w && update_atomic_counter == -1 && model->GetAtomic() == tid) { // TODO: this should be physical cpu number
+  if (next_model && allow_update_w && update_atomic_counter == -1 && model->GetAtomic() == tid) { // TODO: this should be physical cpu number
     allow_update_w = false;
-    if (next_model) {
-      update_atomic_counter = 0xff;
-      fp_type * const old_vals = model->old_weights.values;
-      fp_type * const next_vals = next_model->weights.values;
-      fp_type * const next_old_vals = next_model->old_weights.values;
-      fp_type beta = params.beta;
-      for (unsigned i = 0; i < w.size; ++i) {
-        fp_type wi = vals[i];
-        fp_type delta = wi - old_vals[i];
-        if (fabs(delta) > 1e-2) {
-	  fp_type next = next_vals[i];
-	  fp_type new_wi = (next + wi) / 2 + (beta - 0.5) * delta;
-	  next_vals[i] = next + beta * delta;
-	  vals[i] = new_wi;
-          old_vals[i] = new_wi;
-          // next_old_vals[i] -= beta*delta;
-	  // dvals[i] = 0;
-          sync_counter++;
-        }
-        else {
-	  fp_type next = next_vals[i];
-	  vals[i] = (next + wi) / 2 + (beta - 0.5) * delta;
-          old_vals[i] = (next + wi) / 2 - 0.5 * delta;
-        }
+    update_atomic_counter = 0xff;
+    fp_type * const old_vals = model->old_weights.values;
+    fp_type * const next_vals = next_model->weights.values;
+    fp_type * const next_old_vals = next_model->old_weights.values;
+    fp_type beta = params.beta;
+    fp_type lambda = params.lambda;
+    for (unsigned i = 0; i < w.size; ++i) {
+      fp_type wi = vals[i];
+      fp_type delta = wi - old_vals[i];
+      fp_type next = next_vals[i];
+      fp_type new_wi;
+      if (fabs(delta) > 1e-2) {
+	fp_type new_wi = next * lambda + wi * (1 - lambda) + (beta + lambda - 1) * delta;
+	next_vals[i] = next + beta * delta;
+	vals[i] = new_wi;
+	old_vals[i] = new_wi;
+	// next_old_vals[i] -= beta*delta;
+	// dvals[i] = 0;
+	sync_counter++;
       }
-      // printf("%d(@%d):%d/%ld\n", tid, iter, sync_counter, w.size);
+      else {
+        new_wi = next * lambda + wi * (1 - lambda) + lambda * delta;
+	vals[i] = new_wi;
+	old_vals[i] = new_wi - delta;
+      }
+    // printf("%d(@%d):%d/%ld\n", tid, iter, sync_counter, w.size);
     }
   }
   if (update_atomic_counter != -1) {
