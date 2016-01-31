@@ -36,7 +36,7 @@ fp_type inline ComputeLoss(const SVMExample &e, const NumaSVMModel& model) {
 }
 
 int inline ModelUpdate(const SVMExample &examp, const SVMParams &params, 
-                 NumaSVMModel *model, NumaSVMModel *next_model, int tid, 
+                 NumaSVMModel *model, NumaSVMModel *next_model, int tid, int weights_index, 
 		 bool &allow_update_w, int iter, int &update_atomic_counter) {
   int sync_counter = 0;
   vector::FVector<fp_type> &w = model->weights;
@@ -66,7 +66,7 @@ int inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
     // dvals[j] = dvals[j] * (1 - scalar / deg) - vals[j] * (scalar / deg);
   }
   // update dw to the other thread
-  if (next_model && allow_update_w && update_atomic_counter == -1 && model->GetAtomic() == tid) { // TODO: this should be physical cpu number
+  if (next_model && allow_update_w && update_atomic_counter == -1 && model->GetAtomic() == weights_index) { // TODO: this should be physical cpu number
     allow_update_w = false;
     update_atomic_counter = 0xff;
     fp_type * const old_vals = model->old_weights.values;
@@ -94,7 +94,7 @@ int inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
 	old_vals[i] = new_wi - delta;
       }
     }
-    printf("%d(@%d):%d/%ld\n", tid, iter, sync_counter, w.size);
+    // printf("%d/%d(@%d):%d/%ld\n", tid, weights_index, iter, sync_counter, w.size);
   }
   if (update_atomic_counter != -1) {
     update_atomic_counter--;
@@ -156,7 +156,8 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
     // allow_update_w = update_counter > update_thresh;
     allow_update_w = allow_update_w || ((i & 0xff) == (0xff * (tid + 1) / total));
     if (allow_update_w) update_counter = 0;
-    sync_counter += ModelUpdate(examps[indirect], params, m, next_m, tid, allow_update_w, i - start, update_atomic_counter);
+    sync_counter += ModelUpdate(examps[indirect], params, m, next_m, tid, weights_index,
+                                allow_update_w, i - start, update_atomic_counter);
   }
   m->update_atomic_counter = update_atomic_counter;
   // printf("UpdateModel: thread %d, %d/%lu elements copied.\n", tid, sync_counter, model.weights.size);
@@ -171,9 +172,7 @@ double NumaSVMExec::TestModel(SVMTask &task, unsigned tid, unsigned total) {
   NumaSVMModel const &model_head = *task.model;
   int latest_index = model_head.GetAtomic() - 1;
   if (latest_index == -1) {
-    unsigned nphycpus = task.params->tpool->PhyCPUCount();
-    latest_index = total > nphycpus ? nphycpus : total;
-    latest_index -= 1;
+    latest_index = task.params->weights_count - 1;
   }
   // if (tid == 0) printf("Using model index %d to test\n", latest_index);
   NumaSVMModel const &model = task.model[latest_index];

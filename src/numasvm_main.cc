@@ -17,6 +17,7 @@
 // Original Hogwild! Author: Chris Re (chrisre [at] cs.wisc.edu)             
 #include <cstdlib>
 #include <cstring>
+#include <set>
 #include <numa.h>
 
 #include "hazy/hogwild/hogwild-inl.h"
@@ -108,7 +109,84 @@ fp_type SolveBeta(int n) {
   return mid;
 }
 
-void CreateNumaSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::ThreadPool &tpool, unsigned nthreads) {
+
+void PrintNumaMemStats(int node_count) {
+  for (int i = 0; i < node_count; ++i) {
+    long fr;
+    unsigned long sz = numa_node_size(i, &fr);
+    printf("Node %d: %13lu Available, %13ld Free\n", i, sz, fr);
+  }
+}
+
+int CreateNumaPerNodeSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::ThreadPool &tpool, unsigned nthreads) {
+  // Build the weight update chain
+  int * thread_to_weights_mapping = new int[nthreads];
+  int * next_weights = new int[nthreads];
+  /* weight update policy: 
+     Each node has a separated node
+  */
+  for (unsigned i = 0; i < nthreads; ++i) {
+    thread_to_weights_mapping[i] = tpool.GetThreadNodeAffinity(i);
+  }
+  /* next-weight policy:
+     The first thread of a node is responsible for communicating with adjacent node
+  */
+  int node_count = tpool.NodeCount();
+  std::set<int> node_set;
+  for (unsigned i = 0; i < nthreads; ++i) {
+    int node = tpool.GetThreadNodeAffinity(i);
+    if (node_set.find(node) == node_set.end()) {
+      node_set.insert(node);
+      next_weights[i] = node + 1;
+    }
+    else {
+      next_weights[i] = -1;
+    }
+  }
+  if (nthreads == 1) {
+    next_weights[0] = -1;
+  }
+  int max_node = *node_set.rbegin() + 1;
+  int weights_count = max_node > node_count ? node_count : max_node;
+  for (unsigned i = 0; i < nthreads; ++i) {
+    if (max_node == 1) 
+      next_weights[i] = -1;
+   else if (next_weights[i] == max_node)
+      next_weights[i] = 0;
+  }
+  /* Now create the Model array 
+  */
+  numa_run_on_node(0);
+  numa_set_preferred(0);
+  int * atomic_ptr = new int;
+  int atomic_mask = (1 << (sizeof(int) * 8 - (weights_count - 1 ? __builtin_clz(weights_count - 1) : 32))) - 1;
+  node_m = new NumaSVMModel[weights_count];
+  printf("Model array allocated at %p\n", node_m);
+  PrintNumaMemStats(node_count);
+  for (int i = 0; i < weights_count; ++i) {
+    numa_run_on_node(i);
+    numa_set_preferred(i);
+    printf("Allocating memory for node %d\n",i); 
+    node_m[i].AllocateModel(nfeats);
+    PrintNumaMemStats(node_count);
+    node_m[i].atomic_ptr = atomic_ptr;
+    node_m[i].atomic_mask = atomic_mask;
+    node_m[i].thread_to_weights_mapping = thread_to_weights_mapping;
+    node_m[i].next_weights = next_weights;
+    if (i == weights_count - 1) {
+      node_m[i].atomic_inc_value = atomic_mask - weights_count + 2;
+    }
+    else {
+      node_m[i].atomic_inc_value = 1;
+    }
+  }
+  numa_run_on_node(-1);
+  // numa_set_preferred(-1);
+  numa_set_localalloc();
+  return weights_count;
+}
+
+int CreateNumaPerCoreSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::ThreadPool &tpool, unsigned nthreads) {
   // Build the weight update chain
   int * thread_to_weights_mapping = new int[nthreads];
   int * next_weights = new int[nthreads];
@@ -165,6 +243,7 @@ void CreateNumaSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::Thr
   numa_run_on_node(-1);
   // numa_set_preferred(-1);
   numa_set_localalloc();
+  return weights_count;
 }
 
 int main(int argc, char** argv) {
@@ -177,6 +256,7 @@ int main(int argc, char** argv) {
   unsigned nepochs = 20;
   unsigned nthreads = 1;
   float mu = 1.0, step_size = 5e-2, step_decay = 0.8;
+  bool perCore = false;
   static struct extended_option long_options[] = {
     {"mu", required_argument, NULL, 'u', "the maxnorm"},
     {"epochs"    ,required_argument, NULL, 'e', "number of epochs (default is 20)"},
@@ -187,6 +267,7 @@ int main(int argc, char** argv) {
     //{"shufflers", required_argument, NULL, 'q', "number of shufflers"},
     {"binary", required_argument,NULL, 'v', "load the file in a binary fashion"},
     {"matlab-tsv", required_argument,NULL, 'm', "load TSVs indexing from 1 instead of 0"},
+    {"percore", required_argument, NULL, 'c', "Using per-core weights instead of per-node"},
     {NULL,0,NULL,0,0} 
   };
 
@@ -217,6 +298,9 @@ int main(int argc, char** argv) {
       case 'r':
         nthreads = atoi(optarg);
         break;
+      case 'c':
+        perCore = atoi(optarg);
+        break;
       case ':':
       case '?':
         print_usage(long_options, argv[0], usage_str);
@@ -239,14 +323,8 @@ int main(int argc, char** argv) {
   // we initialize thread pool here because we need CPU topology information
   hazy::thread::ThreadPool tpool(nthreads);
   tpool.Init();
-  unsigned nnodes = tpool.NodeCount();
-  unsigned phycpu_count = tpool.PhyCPUCount();
-  unsigned weights_count = nthreads > phycpu_count ? phycpu_count : nthreads;
-  fp_type beta = SolveBeta(weights_count);
-  fp_type lambda = 1 - pow(beta, weights_count - 1);
-  printf("n=%d, beta=%f, lambda=%f\n", weights_count, beta, lambda);
-  SVMParams tp (step_size, step_decay, mu, beta, lambda, &tpool);
   
+  unsigned nnodes = tpool.NodeCount();
   vector::FVector<SVMExample> * node_train_examps = new vector::FVector<SVMExample>[nnodes];
   vector::FVector<SVMExample> * node_test_examps = new vector::FVector<SVMExample>[nnodes];
 
@@ -277,13 +355,24 @@ int main(int argc, char** argv) {
   for (size_t i = 0; i < nfeats; i++) {
     degs[i] = 0;
   }
+
+  NumaSVMModel * node_m;
+  int weights_count;
+  if (perCore) {
+    weights_count = CreateNumaPerCoreSVMModel(node_m, nfeats, tpool, nthreads); 
+  }
+  else {
+    weights_count = CreateNumaPerNodeSVMModel(node_m, nfeats, tpool, nthreads); 
+  }
+  fp_type beta = SolveBeta(weights_count);
+  fp_type lambda = 1 - pow(beta, weights_count - 1);
+  printf("n=%d, beta=%f, lambda=%f\n", weights_count, beta, lambda);
+  SVMParams tp (step_size, step_decay, mu, beta, lambda, weights_count, &tpool);
   CountDegrees(node_train_examps[0], degs);
   tp.degrees = degs;
   tp.ndim = nfeats;
 
 //  hogwild::freeforall::FeedTrainTest(memfeed.GetTrough(), nepochs, nthreads);
-  NumaSVMModel * node_m;
-  CreateNumaSVMModel(node_m, nfeats, tpool, nthreads); 
   NumaSVMModel m;
   m.AllocateModel(nfeats);
   NumaMemoryScan<SVMExample> mscan(node_train_examps, nnodes);
