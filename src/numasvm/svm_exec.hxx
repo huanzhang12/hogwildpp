@@ -36,7 +36,8 @@ fp_type inline ComputeLoss(const SVMExample &e, const NumaSVMModel& model) {
 }
 
 int inline ModelUpdate(const SVMExample &examp, const SVMParams &params, 
-                 NumaSVMModel *model, NumaSVMModel *next_model, int tid, bool &allow_update_w, int iter, int &update_atomic_counter) {
+                 NumaSVMModel *model, NumaSVMModel *next_model, int tid, 
+		 bool &allow_update_w, int iter, int &update_atomic_counter) {
   int sync_counter = 0;
   vector::FVector<fp_type> &w = model->weights;
   // vector::FVector<fp_type> &dw = model->delta_weights;
@@ -92,8 +93,8 @@ int inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
 	vals[i] = new_wi;
 	old_vals[i] = new_wi - delta;
       }
-    // printf("%d(@%d):%d/%ld\n", tid, iter, sync_counter, w.size);
     }
+    printf("%d(@%d):%d/%ld\n", tid, iter, sync_counter, w.size);
   }
   if (update_atomic_counter != -1) {
     update_atomic_counter--;
@@ -144,16 +145,21 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
          tid, node, exampsvec.values[0].vector.values, start, end, weights_index, next_weights,
          m->weights.values, next_weights >= 0 ? next_m->weights.values: NULL, 
          atomic_inc_value, atomic_mask);
-  int counter = 0;
+  int sync_counter = 0;
   int update_atomic_counter = m->update_atomic_counter;
   bool allow_update_w = false;
+  int update_counter = 0;
+  int update_thresh = m->weights.size / 16;
   for (unsigned i = start; i < end; i++) {
     size_t indirect = perm[i];
+    update_counter += examps[indirect].vector.size;
+    // allow_update_w = update_counter > update_thresh;
     allow_update_w = allow_update_w || ((i & 0xff) == (0xff * (tid + 1) / total));
-    counter += ModelUpdate(examps[indirect], params, m, next_m, tid, allow_update_w, i - start, update_atomic_counter);
+    if (allow_update_w) update_counter = 0;
+    sync_counter += ModelUpdate(examps[indirect], params, m, next_m, tid, allow_update_w, i - start, update_atomic_counter);
   }
   m->update_atomic_counter = update_atomic_counter;
-  // printf("UpdateModel: thread %d, %d/%lu elements copied.\n", tid, counter, model.weights.size);
+  // printf("UpdateModel: thread %d, %d/%lu elements copied.\n", tid, sync_counter, model.weights.size);
   
   // vector::ScaleAndAdd(m->weights, m->delta_weights, 1);
   
