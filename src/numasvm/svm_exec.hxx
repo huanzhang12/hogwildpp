@@ -170,9 +170,16 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
 double NumaSVMExec::TestModel(SVMTask &task, unsigned tid, unsigned total) {
   int node = GetNumaNode();
   NumaSVMModel const &model_head = *task.model;
-  int latest_index = model_head.GetAtomic() - 1;
-  if (latest_index == -1) {
-    latest_index = task.params->weights_count - 1;
+  bool use_ring = task.params->use_ring;
+  int latest_index;
+  if (use_ring) {
+    latest_index = model_head.GetAtomic() - 1;
+    if (latest_index == -1) {
+      latest_index = task.params->weights_count - 1;
+    }
+  }
+  else {
+    latest_index = task.params->weights_count;
   }
   // if (tid == 0) printf("Using model index %d to test\n", latest_index);
   NumaSVMModel const &model = task.model[latest_index];
