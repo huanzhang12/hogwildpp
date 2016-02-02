@@ -140,7 +140,7 @@ int CreateNumaPerCoreCentralSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy
     int phy_core = tpool.GetThreadPhyCoreAffinity(i);
     int logical_core = tpool.GetThreadCoreAffinity(i);
     if (phy_core == logical_core) {
-      next_weights[i] = nthreads;
+      next_weights[i] = weights_count;
     }
     else {
       next_weights[i] = -1;
