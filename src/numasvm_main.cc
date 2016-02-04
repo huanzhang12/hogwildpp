@@ -110,7 +110,8 @@ fp_type SolveBeta(int n) {
 }
 
 
-void PrintNumaMemStats(int node_count) {
+void PrintNumaMemStats() {
+  int node_count = numa_max_node() + 1;
   for (int i = 0; i < node_count; ++i) {
     long fr;
     unsigned long sz = numa_node_size(i, &fr);
@@ -160,13 +161,13 @@ int CreateNumaPerCoreCentralSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy
   node_m[weights_count].atomic_mask = 0;
   node_m[weights_count].thread_to_weights_mapping = nullptr;
   node_m[weights_count].next_weights = nullptr;
-  PrintNumaMemStats(node_count);
+  PrintNumaMemStats();
   for (int i = 0; i < weights_count; ++i) {
     numa_run_on_node(numa_node_of_cpu(i));
     numa_set_preferred(numa_node_of_cpu(i));
     printf("Allocating memory for core %d on node %d\n",i, numa_node_of_cpu(i)); 
     node_m[i].AllocateModel(nfeats);
-    PrintNumaMemStats(node_count);
+    PrintNumaMemStats();
     node_m[i].atomic_ptr = atomic_ptr;
     node_m[i].atomic_mask = atomic_mask;
     node_m[i].thread_to_weights_mapping = thread_to_weights_mapping;
@@ -179,7 +180,6 @@ int CreateNumaPerCoreCentralSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy
     }
   }
   numa_run_on_node(-1);
-  // numa_set_preferred(-1);
   numa_set_localalloc();
   return weights_count;
 }
@@ -235,13 +235,13 @@ int CreateNumaPerNodeCentralSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy
   node_m[weights_count].atomic_mask = 0;
   node_m[weights_count].thread_to_weights_mapping = nullptr;
   node_m[weights_count].next_weights = nullptr;
-  PrintNumaMemStats(node_count);
+  PrintNumaMemStats();
   for (int i = 0; i < weights_count; ++i) {
     numa_run_on_node(i);
     numa_set_preferred(i);
     printf("Allocating memory for node %d\n",i);
     node_m[i].AllocateModel(nfeats);
-    PrintNumaMemStats(node_count);
+    PrintNumaMemStats();
     node_m[i].atomic_ptr = atomic_ptr;
     node_m[i].atomic_mask = atomic_mask;
     node_m[i].thread_to_weights_mapping = thread_to_weights_mapping;
@@ -254,7 +254,6 @@ int CreateNumaPerNodeCentralSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy
     }
   }
   numa_run_on_node(-1);
-  // numa_set_preferred(-1);
   numa_set_localalloc();
   return weights_count;
 }
@@ -303,13 +302,13 @@ int CreateNumaPerNodeRingSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::t
   int atomic_mask = (1 << (sizeof(int) * 8 - (weights_count - 1 ? __builtin_clz(weights_count - 1) : 32))) - 1;
   node_m = new NumaSVMModel[weights_count];
   printf("Model array allocated at %p\n", node_m);
-  PrintNumaMemStats(node_count);
+  PrintNumaMemStats();
   for (int i = 0; i < weights_count; ++i) {
     numa_run_on_node(i);
     numa_set_preferred(i);
     printf("Allocating memory for node %d\n",i);
     node_m[i].AllocateModel(nfeats);
-    PrintNumaMemStats(node_count);
+    PrintNumaMemStats();
     node_m[i].atomic_ptr = atomic_ptr;
     node_m[i].atomic_mask = atomic_mask;
     node_m[i].thread_to_weights_mapping = thread_to_weights_mapping;
@@ -322,7 +321,6 @@ int CreateNumaPerNodeRingSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::t
     }
   }
   numa_run_on_node(-1);
-  // numa_set_preferred(-1);
   numa_set_localalloc();
   return weights_count;
 }
@@ -382,7 +380,6 @@ int CreateNumaPerCoreRingSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::t
     }
   }
   numa_run_on_node(-1);
-  // numa_set_preferred(-1);
   numa_set_localalloc();
   return weights_count;
 }
@@ -397,8 +394,8 @@ int main(int argc, char** argv) {
   unsigned nepochs = 20;
   unsigned nthreads = 1;
   float mu = 1.0, step_size = 5e-2, step_decay = 0.8;
-  bool perCore = false;
-  bool useRing = false;
+  bool perCore = true;
+  bool useRing = true;
   static struct extended_option long_options[] = {
     {"mu", required_argument, NULL, 'u', "the maxnorm"},
     {"epochs"    ,required_argument, NULL, 'e', "number of epochs (default is 20)"},
@@ -409,8 +406,8 @@ int main(int argc, char** argv) {
     //{"shufflers", required_argument, NULL, 'q', "number of shufflers"},
     {"binary", required_argument,NULL, 'v', "load the file in a binary fashion"},
     {"matlab-tsv", required_argument,NULL, 'm', "load TSVs indexing from 1 instead of 0"},
-    {"percore", required_argument, NULL, 'c', "Using per-core weights instead of per-node"},
-    {"ring", required_argument, NULL, 'g', "Using the ring update scheme, otherwise use a common w"},
+    {"percore", required_argument, NULL, 'c', "Using per-core weights instead of per-node (default: on)"},
+    {"ring", required_argument, NULL, 'g', "Using the ring update scheme, otherwise use a common w (default: on)"},
     {NULL,0,NULL,0,0} 
   };
 

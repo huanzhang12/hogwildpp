@@ -66,7 +66,8 @@ int inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
     // dvals[j] = dvals[j] * (1 - scalar / deg) - vals[j] * (scalar / deg);
   }
   // update dw to the other thread
-  if (next_model && allow_update_w && update_atomic_counter == -1 && model->GetAtomic() == weights_index) { // TODO: this should be physical cpu number
+  bool precond = next_model && allow_update_w && update_atomic_counter == -1;
+  if (precond && model->GetAtomic() == weights_index) {
     allow_update_w = false;
     update_atomic_counter = 0xff;
     fp_type * const old_vals = model->old_weights.values;
@@ -84,8 +85,6 @@ int inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
 	next_vals[i] = next + beta * delta;
 	vals[i] = new_wi;
 	old_vals[i] = new_wi;
-	// next_old_vals[i] -= beta*delta;
-	// dvals[i] = 0;
 	sync_counter++;
       }
       else {
@@ -161,8 +160,6 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
   }
   m->update_atomic_counter = update_atomic_counter;
   // printf("UpdateModel: thread %d, %d/%lu elements copied.\n", tid, sync_counter, model.weights.size);
-  
-  // vector::ScaleAndAdd(m->weights, m->delta_weights, 1);
   
   return 0.0;
 }
