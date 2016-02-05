@@ -69,7 +69,7 @@ int inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
   bool precond = next_model && allow_update_w && update_atomic_counter == -1;
   if (precond && model->GetAtomic() == weights_index) {
     allow_update_w = false;
-    update_atomic_counter = 0xff;
+    update_atomic_counter = params.update_delay;
     fp_type * const old_vals = model->old_weights.values;
     fp_type * const next_vals = next_model->weights.values;
     fp_type * const next_old_vals = next_model->old_weights.values;

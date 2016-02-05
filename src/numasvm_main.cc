@@ -396,6 +396,7 @@ int main(int argc, char** argv) {
   float mu = 1.0, step_size = 5e-2, step_decay = 0.8;
   bool perCore = true;
   bool useRing = true;
+  int update_delay = 256;
   static struct extended_option long_options[] = {
     {"mu", required_argument, NULL, 'u', "the maxnorm"},
     {"epochs"    ,required_argument, NULL, 'e', "number of epochs (default is 20)"},
@@ -408,6 +409,7 @@ int main(int argc, char** argv) {
     {"matlab-tsv", required_argument,NULL, 'm', "load TSVs indexing from 1 instead of 0"},
     {"percore", required_argument, NULL, 'c', "Using per-core weights instead of per-node (default: on)"},
     {"ring", required_argument, NULL, 'g', "Using the ring update scheme, otherwise use a common w (default: on)"},
+    {"update_delay", required_argument, NULL, 't', "Number of iterations before pass the token to the next thread (default: 256)"},
     {NULL,0,NULL,0,0} 
   };
 
@@ -443,6 +445,9 @@ int main(int argc, char** argv) {
         break;
       case 'g':
         useRing = atoi(optarg);
+        break;
+      case 't':
+        update_delay = atoi(optarg);
         break;
       case ':':
       case '?':
@@ -523,7 +528,7 @@ int main(int argc, char** argv) {
     lambda = 1.0;
   }
   printf("n=%d, beta=%f, lambda=%f\n", weights_count, beta, lambda);
-  SVMParams tp (step_size, step_decay, mu, beta, lambda, weights_count, useRing, &tpool);
+  SVMParams tp (step_size, step_decay, mu, beta, lambda, weights_count, useRing, update_delay, &tpool);
   CountDegrees(node_train_examps[0], degs);
   tp.degrees = degs;
   tp.ndim = nfeats;
