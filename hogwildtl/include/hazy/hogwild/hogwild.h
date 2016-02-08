@@ -55,7 +55,11 @@ class Hogwild {
    */
   template <class Scan>
   double ComputeRMSE(Scan &scan);
+
  
+  template <class Scan>
+  double ComputeObj(Scan &scan); 
+
   /*! \brief Runs an experiment printing statistics
    * \param nepochs number of epochs to run for
    * \param wall_clock a clock that was already started

@@ -164,13 +164,12 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
   return 0.0;
 }
 
-double NumaSVMExec::TestModel(SVMTask &task, unsigned tid, unsigned total) {
-  int node = GetNumaNode();
+int NumaSVMExec::GetLatestModel(SVMTask &task, unsigned tid, unsigned total) {
   NumaSVMModel const &model_head = *task.model;
   bool use_ring = task.params->use_ring;
   int latest_index;
   if (use_ring) {
-    // Assume that we only do +1 each time
+    // TODO: Assume that we only do +1 each time
     latest_index = model_head.GetAtomic() - 1;
     if (latest_index == -1) {
       latest_index = task.params->weights_count - 1;
@@ -180,7 +179,12 @@ double NumaSVMExec::TestModel(SVMTask &task, unsigned tid, unsigned total) {
     latest_index = task.params->weights_count;
   }
   // if (tid == 0) printf("Using model index %d to test\n", latest_index);
-  NumaSVMModel const &model = task.model[latest_index];
+  return latest_index;
+}
+
+double NumaSVMExec::TestModel(SVMTask &task, unsigned tid, unsigned total) {
+  int node = GetNumaNode();
+  NumaSVMModel const &model = task.model[GetLatestModel(task, tid, total)];
 
   //SVMParams const &params = *task.params;
   // Select the example vector array based on current node
@@ -202,6 +206,40 @@ double NumaSVMExec::TestModel(SVMTask &task, unsigned tid, unsigned total) {
   //counted = end-start;
   return loss;
 }
+
+double NumaSVMExec::ModelObj(SVMTask &task, unsigned tid, unsigned total) {
+  int node = GetNumaNode();
+  NumaSVMModel const &model = task.model[GetLatestModel(task, tid, total)];
+
+  //SVMParams const &params = *task.params;
+  // Select the example vector array based on current node
+  vector::FVector<SVMExample> const & exampsvec = task.block[node].ex;
+
+  // calculate which chunk of examples we work on
+  size_t start = hogwild::GetStartIndex(exampsvec.size, tid, total); 
+  size_t end = hogwild::GetEndIndex(exampsvec.size, tid, total);
+
+  // keep const correctness
+  SVMExample const * const examps = exampsvec.values;
+  fp_type loss = 0.0;
+  // compute the loss for each example
+  for (unsigned i = start; i < end; i++) {
+    fp_type l = ComputeLoss(examps[i], model);
+    loss += l;
+  }
+  start = hogwild::GetStartIndex(model.weights.size, tid, total);
+  end = hogwild::GetEndIndex(model.weights.size, tid, total);
+  double const * const weights = model.weights.values;
+  fp_type reg = 0.0;
+  // compute the regularization term
+  for (unsigned i = start; i < end; ++i) {
+    reg += weights[i] * weights[i];
+  }
+  // return the number of examples we used and the sum of the loss
+  //counted = end-start;
+  return loss + 0.5 * reg;
+}
+
 
 } // namespace svm
 } // namespace hogwild

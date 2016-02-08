@@ -107,6 +107,38 @@ double SVMExec::TestModel(SVMTask &task, unsigned tid, unsigned total) {
   return loss;
 }
 
+
+double SVMExec::ModelObj(SVMTask &task, unsigned tid, unsigned total) {
+  SVMModel const &model = *task.model;
+
+  //SVMParams const &params = *task.params;
+  vector::FVector<SVMExample> const & exampsvec = task.block->ex;
+
+  // calculate which chunk of examples we work on
+  size_t start = hogwild::GetStartIndex(exampsvec.size, tid, total); 
+  size_t end = hogwild::GetEndIndex(exampsvec.size, tid, total);
+
+  // keep const correctness
+  SVMExample const * const examps = exampsvec.values;
+  fp_type loss = 0.0;
+  // compute the loss for each example
+  for (unsigned i = start; i < end; i++) {
+    fp_type l = ComputeLoss(examps[i], model);
+    loss += l;
+  }
+  start = hogwild::GetStartIndex(model.weights.size, tid, total);
+  end = hogwild::GetEndIndex(model.weights.size, tid, total);
+  double const * const weights = model.weights.values;
+  fp_type reg = 0.0;
+  // compute the regularization term
+  for (unsigned i = start; i < end; ++i) {
+    reg += weights[i] * weights[i];
+  }
+  // return the number of examples we used and the sum of the loss
+  //counted = end-start;
+  return loss + 0.5 * reg;
+}
+
 } // namespace svm
 } // namespace hogwild
 

@@ -63,6 +63,7 @@ class SVMExec {
 
   static void PostEpoch(SVMModel &model, SVMParams &params) {
   }
+  static double ModelObj(SVMTask &task, unsigned tid, unsigned total);
 };
 
 } // namespace svm

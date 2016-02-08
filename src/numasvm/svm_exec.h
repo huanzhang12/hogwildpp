@@ -63,8 +63,10 @@ class NumaSVMExec {
 
   static void PostEpoch(NumaSVMModel &model, SVMParams &params) {
   }
+  static double ModelObj(SVMTask &task, unsigned tid, unsigned total);
  private:
   static int GetNumaNode();
+  static int GetLatestModel(SVMTask &task, unsigned tid, unsigned total);
 };
 
 } // namespace svm
