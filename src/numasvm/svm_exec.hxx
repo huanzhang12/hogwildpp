@@ -170,6 +170,7 @@ double NumaSVMExec::TestModel(SVMTask &task, unsigned tid, unsigned total) {
   bool use_ring = task.params->use_ring;
   int latest_index;
   if (use_ring) {
+    // Assume that we only do +1 each time
     latest_index = model_head.GetAtomic() - 1;
     if (latest_index == -1) {
       latest_index = task.params->weights_count - 1;

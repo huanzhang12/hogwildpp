@@ -70,6 +70,13 @@ struct NumaSVMModel {
     }
   }
 
+  void MirrorModel(NumaSVMModel const &m) {
+    weights.size = m.weights.size;
+    weights.values = m.weights.values;
+    old_weights.size = m.old_weights.size;
+    old_weights.values = m.old_weights.values;
+  }
+
   inline void IncAtomic() {
     __sync_fetch_and_add(atomic_ptr, atomic_inc_value);
   }
