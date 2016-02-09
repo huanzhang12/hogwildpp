@@ -1,0 +1,290 @@
+\documentclass{sig-alternate-2013}
+
+\setlength{\paperheight}{11in}
+\setlength{\paperwidth}{8.5in}
+\usepackage{paralist}
+%\usepackage{bm}
+\usepackage{algorithm,algorithmic}
+%\usepackage{times}
+\usepackage{url}
+\usepackage{subfigure}
+\usepackage{comment}
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{xspace}
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+
+
+%\usepackage[none]{hyphenat}
+%\hyphenchar\font=5
+
+\newtheorem{thm}{Theorem}
+\newtheorem{prop}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{cor}[thm]{Corollary}
+\newtheorem{assumption}[thm]{Assumption}
+\newtheorem{defn}{Definition}[section]
+
+\newfont{\mycrnotice}{ptmr8t at 7pt}
+\newfont{\myconfname}{ptmri8t at 7pt}
+\let\crnotice\mycrnotice%
+\let\confname\myconfname%
+
+\newcommand{\x}{\boldsymbol{x}}
+\newcommand{\xb}{\bar{\boldsymbol{x}}}
+\newcommand{\y}{\boldsymbol{y}}
+\newcommand{\yb}{\bar{\boldsymbol{y}}}
+\newcommand{\z}{\boldsymbol{z}}
+\newcommand{\zb}{\bar{\boldsymbol{z}}}
+\newcommand{\0}{\boldsymbol{0}}
+\newcommand{\g}{\boldsymbol{g}}
+\newcommand{\gb}{\bar{\boldsymbol{g}}}
+\newcommand{\bv}{\boldsymbol{v}}
+\newcommand{\bd}{\boldsymbol{d}}
+\newcommand{\bb}{\boldsymbol{b}}
+\newcommand{\bg}{\boldsymbol{g}}
+\newcommand{\Row}{\mathcal{R}}
+\newcommand{\lambdamin}{\lambda_{min}}
+\newcommand{\lambdamax}{\lambda_{max}}
+
+\newcommand{\Ht}{\tilde{H}}
+\newcommand{\Lt}{\tilde{L}}
+\newcommand{\Ut}{\tilde{U}}
+\newcommand{\Dt}{\tilde{D}}
+\newcommand{\Lambdat}{\tilde{\Lambda}}
+
+\newcommand{\eps}{\epsilon}
+
+\newcommand{\Hb}{\bar{H}}
+\newcommand{\hb}{\bar{h}}
+\newcommand{\bhb}{\boldsymbol{\bar{h}}}
+\newcommand{\Lb}{\bar{L}}
+\newcommand{\Ub}{\bar{U}}
+
+\newcommand{\Hv}{\vec{H}}
+\newcommand{\hv}{\vec{h}}
+\newcommand{\bhv}{\boldsymbol{\vec{h}}}
+\newcommand{\Lv}{\vec{L}}
+\newcommand{\Uv}{\vec{U}}
+
+\newcommand{\Hbt}{\tilde{\Hb}}
+\newcommand{\Lbt}{\tilde{\Lb}}
+\newcommand{\Ubt}{\tilde{\Ub}}
+
+\newcommand{\Hvt}{\tilde{\Hv}}
+\newcommand{\Lvt}{\tilde{\Lv}}
+\newcommand{\Uvt}{\tilde{\Uv}}
+\newcommand{\bhvt}{\boldsymbol{\tilde{\vec{h}}}}
+
+\newcommand{\I}{\mathcal{I}}
+\newcommand{\Z}{\mathcal{Z}}
+\newcommand{\N}{\mathcal{N}}
+%\newcommand{\R}{\mathcal{R}}
+\newcommand{\T}{\mathcal{T}}
+\newcommand{\prox}{\mathbf{prox}}
+\newcommand{\proj}{\mathbf{proj}}
+\newcommand{\brho}{\boldsymbol{\rho}}
+\newcommand{\rhob}{\bar{\rho}}
+\newcommand{\brhob}{\bar{\brho}}
+\newcommand{\diag}{\text{diag}}
+
+\newcommand{\Dx}{\Delta^{P}\x}
+\newcommand{\Dxb}{\Delta^{P}\xb}
+\newcommand{\Eps}{\mathcal{E}}
+\newcommand{\Epsb}{\bar{\Eps}}
+\newcommand{\Set}{\mathcal{S}}
+\newcommand{\Xb}{\bar{\mathcal{X}}}
+\newcommand{\Orth}{\bar{\mathcal{O}}}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+\newcommand{\D}{\mathcal{D}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\V}{{\mathcal{V}}}
+\newcommand{\A}{{\mathcal{A}}}
+\newcommand{\bzero}{{\boldsymbol{0}}}
+\newcommand{\bm}{{\boldsymbol{m}}}
+\newcommand{\bmm}{{\boldsymbol{m}}}
+\newcommand{\bc}{{\boldsymbol{c}}}
+\newcommand{\by}{{\boldsymbol{y}}}
+\newcommand{\be}{{\boldsymbol{e}}}
+\newcommand{\ba}{{\boldsymbol{a}}}
+\newcommand{\bw}{{\boldsymbol{w}}}
+\newcommand{\bx}{{\boldsymbol{x}}}
+\newcommand{\bt}{{\boldsymbol{t}}}
+\newcommand{\bxt}{{\boldsymbol{x}^t}}
+\newcommand{\bz}{{\boldsymbol{z}}}
+\newcommand{\bu}{{\boldsymbol{u}}}
+\newcommand{\AL}{\boldsymbol{\alpha}}
+\newcommand{\BL}{\boldsymbol{\beta}}
+\newcommand{\bone}{{\boldsymbol{1}}}
+\newcommand{\bp}{{\boldsymbol{p}}}
+
+%\newcolumntype{C}[1]{>{\centering\arraybackslash$}p{#1}<{$}}
+\renewcommand{\baselinestretch}{0.97}
+\def\diabetes{{\sf diabetes}\xspace}
+\def\wine{{\sf wine}\xspace}
+\def\german{{\sf german}\xspace }
+\def\letter{{\sf letter}\xspace }
+\def\pendigit{{\sf pendigit}\xspace }
+\def\vehicle{{\sf vehicle}\xspace}
+\def\census{{\sf census}\xspace}
+\def\kddcup{{\sf kddcup99}\xspace}
+\def\shuttle{{\sf shuttle}\xspace}
+\def\shuttle{{\sf MNIST2M}\xspace}
+\def\covtype{{\sf covtype}\xspace}
+\def\cifar{{\sf cifar}\xspace}
+\def\liblinear{{\sf LIBLINEAR}\xspace }
+\def\LIBSVM{{\sf LIBSVM}\xspace}
+\def\SVMLIGHT{{\sf SVMlight}\xspace}
+\def\MNIST{{\sf mnist8m}\xspace}
+\def\ijcnn{{\sf ijcnn1}\xspace}
+\def\covtype{{\sf covtype}\xspace}
+\def\webspam{{\sf webspam}\xspace}
+\def\cadata{{\sf cadata}\xspace}
+\def\MSD{{\sf MSD}\xspace}
+\def\cpusmall{{\sf cpusmall}\xspace}
+\def\Twitter{{\sf Twitter}\xspace}
+\def\CLRKA{{MEKA}\xspace}
+\def\DBCD{{PBM}\xspace}
+
+\def\DASGD{{DASGD}\xspace}
+\def\Hogwild{{HogWild}\xspace}
+\def\PASSCODE{{PASSCoDe}\xspace}
+
+\begin{document}
+\title{Scaling Up Asynchronous Stochastic Gradient Descent in Multi-core Machines}
+
+%\numberofauthors{4}
+ \author{}
+
+
+\maketitle
+\begin{abstract}
+%\boldmath
+The abstract goes here.
+\end{abstract}
+% IEEEtran.cls defaults to using nonbold math in the Abstract.
+% This preserves the distinction between vectors and scalars. However,
+% if the conference you are submitting to favors bold math in the abstract,
+% then you can use LaTeX's standard command \boldmath at the very start
+% of the abstract to achieve this. Many IEEE journals/conferences frown on
+% math in the abstract anyway.
+
+% no keywords
+
+
+
+
+% For peer review papers, you can put extra information on the cover
+% page as needed:
+% \ifCLASSOPTIONpeerreview
+% \begin{center} \bfseries EDICS Category: 3-BBND \end{center}
+% \fi
+%
+% For peerreview papers, this IEEEtran command inserts a page break and
+% creates the second title. It will be ignored for other modes.
+%\IEEEpeerreviewmaketitle
+
+\section{Introduction}
+\label{sec:intro}
+
+\begin{itemize}
+  \item (Cho) SGD is important for machine learning. Not easy to parallelize SGD because of the nature of ``sequential updates''. 
+  \item (Cho) Hogwild (and other similar algorithms)
+  \item Scalability is an issue when scaling it to many cores (give an example). Explain why.  
+  \item Describe our approach. 
+  \item Why can we address the scalability issue. 
+  \item (Huan) Give some experimental results to show the scalability of our algorithm. 
+  \item Paper outline. 
+  \end{itemize}
+
+\section{Related Work (Cho)}
+\label{sec:related}
+Review literature for asynchronous SGD, and other asynchronous updates (coordinate descent). 
+I will write this. 
+
+\section{Background (Cho)}
+\label{sec:background}
+\subsection{Memory Models in Multi-core Machines}
+
+\subsection{Asynchronous Stochastic Gradient Descent}
+\begin{enumerate}
+  \item SGD updates. 
+  \item Hogwild algorithm. 
+  \item Why it cannot scale up (do we want to explain that Hogwild is better in sparse data but not in dense data)? 
+\end{enumerate}
+
+\section{Proposed Algorithm}
+\label{sec:proposed}
+
+
+\section{Implementation Issues}
+\label{sec:implement}
+
+\section{Experimental Results}
+\label{sec:exp}
+
+Setup, data, machine, \dots
+
+In this section, we evaluate the empirical performance of our proposed
+algorithm \DASGD with other asynchronous algorithms on multi-core machines.
+We consider ? real datasets: xxx, xxx, and xxx. Detailed information is shown in Table~\ref{tab:datasets}. 
+
+\begin{table*}
+  \centering
+  \caption{Dataset statistics \label{tab:datasets}}
+%\resizebox{8.5cm}{!}{
+  \begin{tabular}{|c|r|r|r|r|r|} \hline
+    Dataset & \# training samples & \# testing samples & \# features &  \#nonzeros\\ 
+    \hline
+    RCV1 & ? & ? & ? & ?\\ 
+    \hline
+  \end{tabular}
+%  }
+\end{table*}
+
+We compare include the following implementations into comparison: 
+\begin{enumerate}
+  \item \DASGD: our proposed method. 
+  \item (other variants?)
+  \item \Hogwild:
+  \item \PASSCODE: 
+  \end{enumerate}
+
+We run all the experiments on a machine with 40 cores and\dots 
+
+We include the following
+
+\subsection{Performance on real datasets}
+
+Figure: use all 40 cores; maybe only compare our algorithm with HogWild. 
+For each data, show (1) training loss or objective function (2) prediction accuracy. 
+
+
+\subsection{Scaling in Number of Cores}
+
+Figure: total number of updates vs time
+
+Figure: Scalability (x-axis: seconds $\times$ cores, y-axis: objective function)
+Use 4, 10, 20, 40 cores. 
+(Maybe for our algorithm and for Hogwild). 
+
+
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+
+%The conclusion goes here.
+
+\newpage
+\bibliographystyle{plain}
+\bibliography{IEEEabrv,durable}
+
+
+
+\end{document}
+
+
