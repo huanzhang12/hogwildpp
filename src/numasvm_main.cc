@@ -488,6 +488,7 @@ int main(int argc, char** argv) {
   bool useRing = true;
   int cluster_size = 0;
   int update_delay = 256;
+  double tolerance = 1e-2;
   static struct extended_option long_options[] = {
     {"mu", required_argument, NULL, 'u', "the maxnorm"},
     {"epochs"    ,required_argument, NULL, 'e', "number of epochs (default is 20)"},
@@ -501,7 +502,8 @@ int main(int argc, char** argv) {
     {"percore", required_argument, NULL, 'p', "Using per-core weights instead of per-node (default: on)"},
     {"ring", required_argument, NULL, 'g', "Using the ring update scheme, otherwise use a common w (default: on)"},
     {"update_delay", required_argument, NULL, 't', "Number of iterations before pass the token to the next thread (default: 256)"},
-    {"cluster_size", required_argument, NULL, 'c', "Threads in a cluster share the same weights\n"},
+    {"cluster_size", required_argument, NULL, 'c', "Threads in a cluster share the same weights"},
+    {"tolerance", required_argument, NULL, 'o', "error tolerance when doing gradient update (default 1e-2)"},
     {NULL,0,NULL,0,0} 
   };
 
@@ -543,6 +545,9 @@ int main(int argc, char** argv) {
         break;
       case 'c':
         cluster_size = atoi(optarg);
+        break;
+      case 'o':
+        tolerance = atof(optarg);
         break;
       case ':':
       case '?':
@@ -636,7 +641,7 @@ int main(int argc, char** argv) {
   }
   printf("weights_count=%d, beta=%f, lambda=%f\n", weights_count, beta, lambda);
   PrintWeights(node_m, weights_count, nthreads, tpool);
-  SVMParams tp (step_size, step_decay, mu, beta, lambda, weights_count, useRing, update_delay, &tpool);
+  SVMParams tp (step_size, step_decay, mu, beta, lambda, weights_count, useRing, update_delay, tolerance, &tpool);
   CountDegrees(node_train_examps[0], degs);
   tp.degrees = degs;
   tp.ndim = nfeats;

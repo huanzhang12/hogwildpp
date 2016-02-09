@@ -82,12 +82,13 @@ int inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
     fp_type * const next_old_vals = next_model->old_weights.values;
     fp_type beta = params.beta;
     fp_type lambda = params.lambda;
+    fp_type tolerance = params.tolerance;
     for (unsigned i = 0; i < w.size; ++i) {
       fp_type wi = vals[i];
       fp_type delta = wi - old_vals[i];
       fp_type next = next_vals[i];
       fp_type new_wi;
-      if (fabs(delta) > 1e-2) {
+      if (fabs(delta) > tolerance) {
 	fp_type new_wi = next * lambda + wi * (1 - lambda) + (beta + lambda - 1) * delta;
 	next_vals[i] = next + beta * delta;
 	vals[i] = new_wi;
