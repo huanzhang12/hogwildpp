@@ -31,6 +31,13 @@ fp_type inline ComputeLoss(const SVMExample &e, const SVMModel& model) {
   return std::max(1 - dot * e.value, static_cast<fp_type>(0.0));
 }
 
+int inline ComputeAccuracy(const SVMExample &e, const SVMModel& model) {
+  // determine how far off our model is for this example
+  vector::FVector<fp_type> const &w = model.weights;
+  fp_type dot = vector::Dot(w, e.vector);
+  return !!std::max(dot * e.value, static_cast<fp_type>(0.0));
+}
+
 void inline ModelUpdate(const SVMExample &examp, const SVMParams &params, 
                  SVMModel *model) {
   vector::FVector<fp_type> &w = model->weights;
@@ -107,6 +114,28 @@ double SVMExec::TestModel(SVMTask &task, unsigned tid, unsigned total) {
   return loss;
 }
 
+double SVMExec::ModelAccuracy(SVMTask &task, unsigned tid, unsigned total) {
+  SVMModel const &model = *task.model;
+
+  //SVMParams const &params = *task.params;
+  vector::FVector<SVMExample> const & exampsvec = task.block->ex;
+
+  // calculate which chunk of examples we work on
+  size_t start = hogwild::GetStartIndex(exampsvec.size, tid, total); 
+  size_t end = hogwild::GetEndIndex(exampsvec.size, tid, total);
+
+  // keep const correctness
+  SVMExample const * const examps = exampsvec.values;
+  int correct = 0;
+  // compute the loss for each example
+  for (unsigned i = start; i < end; i++) {
+    int l = ComputeAccuracy(examps[i], model);
+    correct += l;
+  }
+  // return the number of examples we used and the sum of the loss
+  //counted = end-start;
+  return correct;
+}
 
 double SVMExec::ModelObj(SVMTask &task, unsigned tid, unsigned total) {
   SVMModel const &model = *task.model;

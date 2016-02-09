@@ -35,6 +35,13 @@ fp_type inline ComputeLoss(const SVMExample &e, const NumaSVMModel& model) {
   return std::max(1 - dot * e.value, static_cast<fp_type>(0.0));
 }
 
+int inline ComputeAccuracy(const SVMExample &e, const NumaSVMModel& model) {
+  // determine how far off our model is for this example
+  vector::FVector<fp_type> const &w = model.weights;
+  fp_type dot = vector::Dot(w, e.vector);
+  return !!std::max(dot * e.value, static_cast<fp_type>(0.0));
+}
+
 int inline ModelUpdate(const SVMExample &examp, const SVMParams &params, 
                  NumaSVMModel *model, NumaSVMModel *next_model, int tid, int weights_index, 
 		 bool &allow_update_w, int iter, int &update_atomic_counter) {
@@ -205,6 +212,31 @@ double NumaSVMExec::TestModel(SVMTask &task, unsigned tid, unsigned total) {
   // return the number of examples we used and the sum of the loss
   //counted = end-start;
   return loss;
+}
+
+double NumaSVMExec::ModelAccuracy(SVMTask &task, unsigned tid, unsigned total) {
+  int node = GetNumaNode();
+  NumaSVMModel const &model = task.model[GetLatestModel(task, tid, total)];
+
+  //SVMParams const &params = *task.params;
+  // Select the example vector array based on current node
+  vector::FVector<SVMExample> const & exampsvec = task.block[node].ex;
+
+  // calculate which chunk of examples we work on
+  size_t start = hogwild::GetStartIndex(exampsvec.size, tid, total); 
+  size_t end = hogwild::GetEndIndex(exampsvec.size, tid, total);
+
+  // keep const correctness
+  SVMExample const * const examps = exampsvec.values;
+  // return the number of examples we used and the sum of the loss
+  int correct = 0;
+  // compute the loss for each example
+  for (unsigned i = start; i < end; i++) {
+    int l = ComputeAccuracy(examps[i], model);
+    correct += l;
+  }
+  //counted = end-start;
+  return correct;
 }
 
 double NumaSVMExec::ModelObj(SVMTask &task, unsigned tid, unsigned total) {
