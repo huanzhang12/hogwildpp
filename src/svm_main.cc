@@ -129,7 +129,12 @@ int main(int argc, char** argv) {
     TSVFileScanner scan(szExampleFile);
     nfeats = LoadSVMExamples(scan, train_examps);
   }
-  if (matlab_tsv) {
+  if (loadBinary) {
+    printf("Loading binary file...\n");
+    scan::BinaryFileScanner scantest(szTestFile);
+    LoadSVMExamples(scantest, test_examps);
+    printf("Loaded binary file!\n");
+  } else if (matlab_tsv) {
     MatlabTSVFileScanner scantest(szTestFile);
     LoadSVMExamples(scantest, test_examps);
   } else {

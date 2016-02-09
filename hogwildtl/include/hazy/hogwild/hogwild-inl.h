@@ -84,7 +84,7 @@ void Hogwild<Model, Params, Exec>::RunExperiment(
   for (int e = 1; e <= nepochs; e++) {
     UpdateModel(trscan);
     double train_rmse = ComputeRMSE(trscan);
-    // double test_rmse = ComputeRMSE(tescan);
+    double test_rmse = ComputeRMSE(tescan);
     double obj = ComputeObj(trscan);
     Exec::PostEpoch(model_, params_);
 /*
@@ -93,9 +93,9 @@ void Hogwild<Model, Params, Exec>::RunExperiment(
            epoch_time_.value, train_rmse, test_rmse);
 */
    
-    printf("epoch: %d wall_clock: %.5f train_time: %.5f test_time: %.5f epoch_time: %.5f train_rmse: %.5g obj: %.5g\n", 
+    printf("epoch: %d wall_clock: %.5f train_time: %.5f test_time: %.5f epoch_time: %.5f train_rmse: %.5g test_rmse: %.5g obj: %.5g\n", 
            e, wall_clock.Read(), train_time_.value, test_time_.value, 
-           epoch_time_.value, train_rmse, obj);
+           epoch_time_.value, train_rmse, test_rmse, obj);
     fflush(stdout);
   }
 }

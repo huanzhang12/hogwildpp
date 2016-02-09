@@ -585,7 +585,12 @@ int main(int argc, char** argv) {
     TSVFileScanner scan(szExampleFile);
     nfeats = NumaLoadSVMExamples(scan, node_train_examps, nnodes);
   }
-  if (matlab_tsv) {
+  if (loadBinary) {
+    printf("Loading binary file...\n");
+    scan::BinaryFileScanner scantest(szTestFile);
+    NumaLoadSVMExamples(scantest, node_test_examps, nnodes);
+    printf("Loaded binary file!\n");
+  } else if (matlab_tsv) {
     MatlabTSVFileScanner scantest(szTestFile);
     NumaLoadSVMExamples(scantest, node_test_examps, nnodes);
   } else {
