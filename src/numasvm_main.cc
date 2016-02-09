@@ -120,7 +120,7 @@ void PrintNumaMemStats() {
 }
 
 
-int CreateNumaPerCoreCentralSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::ThreadPool &tpool, unsigned nthreads) {
+int CreateNumaPerCoreCentralSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::ThreadPool &tpool, unsigned nthreads, int update_delay) {
   // Build the weight update chain
   int * thread_to_weights_mapping = new int[nthreads];
   int * next_weights = new int[nthreads];
@@ -151,7 +151,7 @@ int CreateNumaPerCoreCentralSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy
   */
   numa_run_on_node(0);
   numa_set_preferred(0);
-  int * atomic_ptr = new int;
+  int * atomic_ptr = new int ();
   int atomic_mask = (1 << (sizeof(int) * 8 - (weights_count - 1 ? __builtin_clz(weights_count - 1) : 32))) - 1;
   node_m = new NumaSVMModel[weights_count + 1];
   printf("Model array allocated at %p\n", node_m);
@@ -178,13 +178,14 @@ int CreateNumaPerCoreCentralSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy
     else {
       node_m[i].atomic_inc_value = 1;
     }
+    node_m[i].update_atomic_counter = update_delay;
   }
   numa_run_on_node(-1);
   numa_set_localalloc();
   return weights_count;
 }
 
-int CreateNumaPerNodeCentralSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::ThreadPool &tpool, unsigned nthreads) {
+int CreateNumaPerNodeCentralSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::ThreadPool &tpool, unsigned nthreads, int update_delay) {
   // Build the weight update chain
   int * thread_to_weights_mapping = new int[nthreads];
   int * next_weights = new int[nthreads];
@@ -226,7 +227,7 @@ int CreateNumaPerNodeCentralSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy
   */
   numa_run_on_node(0);
   numa_set_preferred(0);
-  int * atomic_ptr = new int;
+  int * atomic_ptr = new int ();
   int atomic_mask = (1 << (sizeof(int) * 8 - (weights_count - 1 ? __builtin_clz(weights_count - 1) : 32))) - 1;
   node_m = new NumaSVMModel[weights_count + 1];
   printf("Model array allocated at %p\n", node_m);
@@ -252,6 +253,7 @@ int CreateNumaPerNodeCentralSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy
     else {
       node_m[i].atomic_inc_value = 1;
     }
+    node_m[i].update_atomic_counter = update_delay;
   }
   numa_run_on_node(-1);
   numa_set_localalloc();
@@ -259,7 +261,7 @@ int CreateNumaPerNodeCentralSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy
 }
 
 
-int CreateNumaClusterRoundRobinRingSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::ThreadPool &tpool, unsigned nthreads, unsigned cluster_size) {
+int CreateNumaClusterRoundRobinRingSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::ThreadPool &tpool, unsigned nthreads, unsigned cluster_size, int update_delay) {
   // Build the weight update chain
   int * thread_to_weights_mapping = new int[nthreads];
   int * next_weights = new int[nthreads];
@@ -323,13 +325,14 @@ int CreateNumaClusterRoundRobinRingSVMModel(NumaSVMModel * &node_m, size_t nfeat
     }
     node_m[i].thread_to_weights_mapping = thread_to_weights_mapping;
     node_m[i].next_weights = next_weights;
+    node_m[i].update_atomic_counter = update_delay;
   }
   numa_run_on_node(-1);
   numa_set_localalloc();
   return weights_count;
 }
 
-int CreateNumaPerNodeRingSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::ThreadPool &tpool, unsigned nthreads) {
+int CreateNumaPerNodeRingSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::ThreadPool &tpool, unsigned nthreads, int update_delay) {
   // Build the weight update chain
   int * thread_to_weights_mapping = new int[nthreads];
   int * next_weights = new int[nthreads];
@@ -369,7 +372,7 @@ int CreateNumaPerNodeRingSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::t
   */
   numa_run_on_node(0);
   numa_set_preferred(0);
-  int * atomic_ptr = new int;
+  int * atomic_ptr = new int ();
   int atomic_mask = (1 << (sizeof(int) * 8 - (weights_count - 1 ? __builtin_clz(weights_count - 1) : 32))) - 1;
   node_m = new NumaSVMModel[weights_count];
   printf("Model array allocated at %p\n", node_m);
@@ -390,13 +393,14 @@ int CreateNumaPerNodeRingSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::t
     else {
       node_m[i].atomic_inc_value = 1;
     }
+    node_m[i].update_atomic_counter = update_delay;
   }
   numa_run_on_node(-1);
   numa_set_localalloc();
   return weights_count;
 }
 
-int CreateNumaPerCoreRingSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::ThreadPool &tpool, unsigned nthreads) {
+int CreateNumaPerCoreRingSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::ThreadPool &tpool, unsigned nthreads, int update_delay) {
   // Build the weight update chain
   int * thread_to_weights_mapping = new int[nthreads];
   int * next_weights = new int[nthreads];
@@ -430,7 +434,7 @@ int CreateNumaPerCoreRingSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::t
   */
   numa_run_on_node(0);
   numa_set_preferred(0);
-  int * atomic_ptr = new int;
+  int * atomic_ptr = new int ();
   int atomic_mask = (1 << (sizeof(int) * 8 - (weights_count - 1 ? __builtin_clz(weights_count - 1) : 32))) - 1;
   node_m = new NumaSVMModel[weights_count];
   printf("Model array allocated at %p\n", node_m);
@@ -449,6 +453,7 @@ int CreateNumaPerCoreRingSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::t
     else {
       node_m[i].atomic_inc_value = 1;
     }
+    node_m[i].update_atomic_counter = update_delay;
   }
   numa_run_on_node(-1);
   numa_set_localalloc();
@@ -613,27 +618,27 @@ int main(int argc, char** argv) {
   int weights_count;
   fp_type beta, lambda;
   if (cluster_size) {
-     weights_count = CreateNumaClusterRoundRobinRingSVMModel(node_m, nfeats, tpool, nthreads, cluster_size);
+     weights_count = CreateNumaClusterRoundRobinRingSVMModel(node_m, nfeats, tpool, nthreads, cluster_size, update_delay);
      beta = SolveBeta(weights_count / cluster_size);
      lambda = 1 - pow(beta, weights_count / cluster_size - 1);
   }
   else {
     if (useRing) {
       if (perCore) {
-	weights_count = CreateNumaPerCoreRingSVMModel(node_m, nfeats, tpool, nthreads); 
+	weights_count = CreateNumaPerCoreRingSVMModel(node_m, nfeats, tpool, nthreads, update_delay); 
       }
       else {
-	weights_count = CreateNumaPerNodeRingSVMModel(node_m, nfeats, tpool, nthreads); 
+	weights_count = CreateNumaPerNodeRingSVMModel(node_m, nfeats, tpool, nthreads, update_delay); 
       }
       beta = SolveBeta(weights_count);
       lambda = 1 - pow(beta, weights_count - 1);
     }
     else {
       if (perCore) {
-	weights_count = CreateNumaPerCoreCentralSVMModel(node_m, nfeats, tpool, nthreads); 
+	weights_count = CreateNumaPerCoreCentralSVMModel(node_m, nfeats, tpool, nthreads, update_delay); 
       }
       else {
-	weights_count = CreateNumaPerNodeCentralSVMModel(node_m, nfeats, tpool, nthreads); 
+	weights_count = CreateNumaPerNodeCentralSVMModel(node_m, nfeats, tpool, nthreads, update_delay); 
       }
       beta = 1.0;
       lambda = 1.0;
