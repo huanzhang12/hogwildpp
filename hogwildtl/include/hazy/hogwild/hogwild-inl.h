@@ -105,6 +105,7 @@ void Hogwild<Model, Params, Exec>::RunExperiment(
     double train_acc = ComputeAccuracy(trscan);
     double test_acc = ComputeAccuracy(tescan);
     Exec::PostEpoch(model_, params_);
+    Exec::PostUpdate(model_, params_);
 /*
     printf("epoch: %d wall_clock: %.5f train_time: %.5f test_time: %.5f epoch_time: %.5f train_rmse: %.5g test_rmse: %.5g\n", 
            e, wall_clock.Read(), train_time_.value, test_time_.value, 
