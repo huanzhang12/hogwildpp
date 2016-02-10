@@ -178,7 +178,7 @@ int CreateNumaPerCoreCentralSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy
     else {
       node_m[i].atomic_inc_value = 1;
     }
-    node_m[i].update_atomic_counter = update_delay;
+    node_m[i].update_atomic_counter = update_delay * 8; // give the first update a little bit longer time;
   }
   numa_run_on_node(-1);
   numa_set_localalloc();
@@ -253,7 +253,7 @@ int CreateNumaPerNodeCentralSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy
     else {
       node_m[i].atomic_inc_value = 1;
     }
-    node_m[i].update_atomic_counter = update_delay;
+    node_m[i].update_atomic_counter = update_delay * 8; // give the first update a little bit longer time;
   }
   numa_run_on_node(-1);
   numa_set_localalloc();
@@ -325,7 +325,7 @@ int CreateNumaClusterRoundRobinRingSVMModel(NumaSVMModel * &node_m, size_t nfeat
     }
     node_m[i].thread_to_weights_mapping = thread_to_weights_mapping;
     node_m[i].next_weights = next_weights;
-    node_m[i].update_atomic_counter = update_delay;
+    node_m[i].update_atomic_counter = update_delay * 8; // give the first update a little bit longer time;
   }
   numa_run_on_node(-1);
   numa_set_localalloc();
@@ -393,7 +393,7 @@ int CreateNumaPerNodeRingSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::t
     else {
       node_m[i].atomic_inc_value = 1;
     }
-    node_m[i].update_atomic_counter = update_delay;
+    node_m[i].update_atomic_counter = update_delay * 8; // give the first update a little bit longer time;
   }
   numa_run_on_node(-1);
   numa_set_localalloc();
@@ -453,7 +453,7 @@ int CreateNumaPerCoreRingSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::t
     else {
       node_m[i].atomic_inc_value = 1;
     }
-    node_m[i].update_atomic_counter = update_delay;
+    node_m[i].update_atomic_counter = update_delay * 8; // give the first update a little bit longer time;
   }
   numa_run_on_node(-1);
   numa_set_localalloc();

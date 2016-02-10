@@ -46,6 +46,7 @@ struct NumaSVMModel {
   int atomic_inc_value;
   int atomic_mask;
   int update_atomic_counter;
+  bool allow_update_w;
   int * thread_to_weights_mapping;
   int * next_weights;
 
@@ -56,6 +57,7 @@ struct NumaSVMModel {
    */
   explicit NumaSVMModel() {
     update_atomic_counter = -1;
+    allow_update_w = true;
   }
 
   void AllocateModel(unsigned dim) {

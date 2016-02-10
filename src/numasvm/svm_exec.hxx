@@ -73,7 +73,7 @@ int inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
     // dvals[j] = dvals[j] * (1 - scalar / deg) - vals[j] * (scalar / deg);
   }
   // update dw to the other thread
-  bool precond = next_model && allow_update_w && update_atomic_counter == -1;
+  bool precond = next_model && allow_update_w && update_atomic_counter < 0;
   if (precond && model->GetAtomic() == weights_index) {
     allow_update_w = false;
     update_atomic_counter = params.update_delay;
@@ -103,15 +103,16 @@ int inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
     }
     // printf("%d/%d(@%d):%d/%ld\n", tid, weights_index, iter, sync_counter, w.size);
   }
-  if (update_atomic_counter != -1) {
+  // if (update_atomic_counter != -1) {
     update_atomic_counter--;
     if (!update_atomic_counter && !allow_update_w) {
       // printf("%d(@%d):inc\n", tid, iter);
       model->IncAtomic();
       allow_update_w = true;
-      update_atomic_counter = -1;
+      // Add some delay before we read the atomic next time
+      update_atomic_counter = params.update_delay * params.weights_count;
     }
-  }
+  // }
   return sync_counter;
 }
 
@@ -155,9 +156,9 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
          m->weights.values, next_weights >= 0 ? next_m->weights.values: NULL, 
          atomic_inc_value, atomic_mask, update_atomic_counter);
   int sync_counter = 0;
-  bool allow_update_w = true;
-  int update_counter = 0;
-  int update_thresh = m->weights.size / 16;
+  bool allow_update_w = m->allow_update_w;
+  // int update_counter = 0;
+  // int update_thresh = m->weights.size / 16;
   for (unsigned i = start; i < end; i++) {
     size_t indirect = perm[i];
     // update_counter += examps[indirect].vector.size;
@@ -167,7 +168,9 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
     sync_counter += ModelUpdate(examps[indirect], params, m, next_m, tid, weights_index,
                                 allow_update_w, i - start, update_atomic_counter);
   }
+  // Save states
   m->update_atomic_counter = update_atomic_counter;
+  m->allow_update_w = allow_update_w;
   // printf("%d: %d\n", tid, update_atomic_counter);
   // printf("UpdateModel: thread %d, %d/%lu elements copied.\n", tid, sync_counter, model.weights.size);
   
