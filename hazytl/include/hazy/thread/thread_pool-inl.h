@@ -81,6 +81,7 @@ void ThreadPool::Init() {
     metas_[i].ready = &ready_;
     metas_[i].finished = &finished_;
     metas_[i].tpool = this;
+    metas_[i].binded = false;
   }
 
   if(numa_available() < 0) {
@@ -220,7 +221,10 @@ void ThreadPool::ThreadLoop(ThreadMeta &meta) {
   while (true) {
     barrier_wait(meta.ready);
     // we want to bind our thread to a specified CPU
-    BindToCPU(meta);
+    if (!meta.binded) {
+      BindToCPU(meta);
+      meta.binded = true;
+    }
     if (meta.exit_flag) {
       break;
     }

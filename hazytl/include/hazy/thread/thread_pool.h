@@ -32,6 +32,7 @@ namespace thread {
 struct ThreadMeta {
   unsigned thread_id; //!< [0, 1, ..., N]
   bool exit_flag; //!< set to true to have thread exit safely
+  bool binded; //!< set to true after the thread has been binded to a CPU
   barrier_t *ready; //!< wait for a task to work on
   barrier_t *finished; //!< wait after the task is done
   void *tpool; //!< callback into the threadpool that created it
