@@ -57,9 +57,11 @@ ThreadPool::~ThreadPool() {
     return;
   }
   delete [] threads_;
-  delete [] metas_;
+  delete [] metas_; // FIXME: this might be deleted before threads exit
   delete [] thread_core_mapping_;
   delete [] thread_node_mapping_;
+  delete [] thread_phycore_mapping_;
+  delete [] cpuids_;
   barrier_destroy(&ready_);
   barrier_destroy(&finished_);
 }

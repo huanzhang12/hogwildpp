@@ -653,14 +653,12 @@ int main(int argc, char** argv) {
   tp.ndim = nfeats;
 
 //  hogwild::freeforall::FeedTrainTest(memfeed.GetTrough(), nepochs, nthreads);
-  NumaSVMModel m;
-  m.AllocateModel(nfeats);
   NumaMemoryScan<SVMExample> mscan(node_train_examps, nnodes);
   Hogwild<NumaSVMModel, SVMParams, NumaSVMExec>  hw(node_m[0], tp, tpool);
   NumaMemoryScan<SVMExample> tscan(node_test_examps, nnodes);
 
   hw.RunExperiment(nepochs, wall_clock, mscan, tscan);
-
+  
   return 0;
 }
 

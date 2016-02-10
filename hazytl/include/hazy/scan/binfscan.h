@@ -45,6 +45,7 @@ class BinaryFileScanner {
    * \param fname a path to the file on disk to open
    */
   BinaryFileScanner(const char *fname);
+  ~BinaryFileScanner();
 
   //! True if there are more Entries to read by calling Next()
   /*! If !HasNext(), then the behavior of Peek() or Next() is undefined.

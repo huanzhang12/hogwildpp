@@ -30,6 +30,10 @@ hazy::scan::BinaryFileScanner::BinaryFileScanner( const char *fname)
   Reset();
 }
 
+hazy::scan::BinaryFileScanner::~BinaryFileScanner() {
+  delete [] array_;
+}
+
 bool hazy::scan::BinaryFileScanner::HasNext() const {
   return total_ > 0;
 }
