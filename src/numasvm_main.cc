@@ -577,7 +577,8 @@ int main(int argc, char** argv) {
   hazy::thread::ThreadPool tpool(nthreads);
   tpool.Init();
   
-  unsigned nnodes = tpool.NodeCount();
+  unsigned nnodes = tpool.UsedNodeCount();
+  printf("%d threads will be running on %d nnodes\n", nthreads, nnodes);
   vector::FVector<SVMExample> * node_train_examps = new vector::FVector<SVMExample>[nnodes];
   vector::FVector<SVMExample> * node_test_examps = new vector::FVector<SVMExample>[nnodes];
 

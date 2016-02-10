@@ -93,6 +93,7 @@ class ThreadPool {
   unsigned CPUCount() const { return ncpus_;}
   unsigned NodeCount() const { return nnodes_;}
   unsigned PhyCPUCount() const { return nphycpus_; }
+  unsigned UsedNodeCount() const { return last_used_node_; }
   const std::vector<std::vector<int> > * Topology() const { return cpuids_; }
   int GetThreadCoreAffinity(unsigned thread_id) const; 
   int GetThreadNodeAffinity(unsigned thread_id) const;
@@ -112,6 +113,7 @@ class ThreadPool {
   unsigned ncpus_;
   unsigned nnodes_;
   unsigned nphycpus_;
+  unsigned last_used_node_;
   std::vector<std::vector<int> > * cpuids_; 
   int * thread_core_mapping_;
   int * thread_node_mapping_;

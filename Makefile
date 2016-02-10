@@ -1,5 +1,5 @@
 # C++ Compiler and options
-CPP=g++-5 -Wall -g -O3
+CPP=g++-5 -Wall -ggdb3 -O3 -march=native
 
 # Path to hogwild (e.g. hogwildtl/include)
 HOG_INCL=hogwildtl/include

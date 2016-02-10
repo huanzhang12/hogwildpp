@@ -19,6 +19,7 @@
 #include <numa.h>
 #include <sched.h>
 #include <cstdio>
+#include <cstdlib>
 
 #include "hazy/util/simple_random-inl.h"
 
@@ -67,10 +68,26 @@ class NumaMemoryScan {
    * First permutes the block of examples and the returns the block
    */
   ExampleBlock<Example>& Next() {
-    for (unsigned node = 0; node < node_size; ++node) {
+    // Only generate the permutation once
+    numa_set_preferred(0);
+    ExampleBlock<Example> &blk0_ = node_blk_[0];
+    size_t size = blk0_.ex.size;
+    if (blk0_.perm.values != NULL) {
+      delete [] blk0_.perm.values;
+      blk0_.perm.values = NULL;
+    }
+    blk0_.perm.size = size;
+    blk0_.perm.values = new size_t[size];
+    for (size_t i = 0; i < size; i++) {
+      blk0_.perm.values[i] = i;
+    }
+    util::SimpleRandom &rand = util::SimpleRandom::GetInstance();
+    rand.LazyPODShuffle(blk0_.perm.values, size);
+    // Copy this permutation to other nodes
+    for (unsigned node = 1; node < node_size; ++node) {
       numa_set_preferred(node);
       ExampleBlock<Example> &blk_ = node_blk_[node];
-      size_t size = blk_.ex.size;
+      size = blk_.ex.size;
 
       if (blk_.perm.values != NULL) {
 	delete [] blk_.perm.values;
@@ -78,12 +95,7 @@ class NumaMemoryScan {
       }
       blk_.perm.size = size;
       blk_.perm.values = new size_t[size];
-      for (size_t i = 0; i < size; i++) {
-	blk_.perm.values[i] = i;
-      }
-
-      util::SimpleRandom &rand = util::SimpleRandom::GetInstance();
-      rand.LazyPODShuffle(blk_.perm.values, size);
+      std::memcpy(blk_.perm.values, blk0_.perm.values, size * sizeof(size_t));
     }
     has_next_ = false;
     numa_set_preferred(-1);
