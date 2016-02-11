@@ -204,6 +204,33 @@ template <class Model, class Params, class Example, class Scan>
 size_t FFAScan(Model &m, Params &p, Scan &scan, 
                hazy::thread::ThreadPool &tpool,
      double (*hook)(HogwildTask<Model, Params, Example>&, unsigned, unsigned),
+               vector::FVector<double> &result, 
+               hazy::util::Clock &train_time, hazy::util::Clock &epoch_time) {
+
+  size_t count = 0;
+
+  HogwildTask<Model, Params, Example> task;
+  task.model = &m;
+  task.params = &p;
+
+  while (scan.HasNext()) {
+    ExampleBlock<Example> &ex = scan.Next();
+    task.block = &ex;
+    count += ex.ex.size;
+
+    train_time.Start();
+    epoch_time.Start();
+    FreeForAll(task, tpool, hook, result);
+    epoch_time.Stop();
+    train_time.Pause();
+  }
+  return count;
+}
+
+template <class Model, class Params, class Example, class Scan>
+size_t FFAScan(Model &m, Params &p, Scan &scan, 
+               hazy::thread::ThreadPool &tpool,
+     double (*hook)(HogwildTask<Model, Params, Example>&, unsigned, unsigned),
                vector::FVector<double> &result) {
 
   size_t count = 0;
@@ -221,7 +248,6 @@ size_t FFAScan(Model &m, Params &p, Scan &scan,
   }
   return count;
 }
-
 
 /*
 template <class HogwildTask_t, class ATypeSpace>

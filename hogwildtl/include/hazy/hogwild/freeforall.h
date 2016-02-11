@@ -55,6 +55,12 @@ size_t FFAScan(Model &m, Params &p, Scan &scan,
      double (*hook)(HogwildTask<Model, Params, Example>&, unsigned, unsigned),
                vector::FVector<double> &result);
 
+template <class Model, class Params, class Example, class Scan>
+size_t FFAScan(Model &m, Params &p, Scan &scan, 
+               hazy::thread::ThreadPool &tpool,
+     double (*hook)(HogwildTask<Model, Params, Example>&, unsigned, unsigned),
+               vector::FVector<double> &result, 
+               hazy::util::Clock &train_time, hazy::util::Clock &epoch_time); 
 } // namespace hogwild
 } // namespace hazy
 #endif

@@ -33,11 +33,11 @@ template <class Scan>
 void Hogwild<Model, Params, Exec>::UpdateModel(Scan &scan) {
   scan.Reset();
   Zero();
-  train_time_.Start();
-  epoch_time_.Start();
-  FFAScan(model_, params_, scan, tpool_, Exec::UpdateModel, res_);
-  epoch_time_.Stop();
-  train_time_.Pause();
+  // train_time_.Start();
+  // epoch_time_.Start();
+  FFAScan(model_, params_, scan, tpool_, Exec::UpdateModel, res_, train_time_, epoch_time_);
+  // epoch_time_.Stop();
+  // train_time_.Pause();
 }
 
 template <class Model, class Params, class Exec>
