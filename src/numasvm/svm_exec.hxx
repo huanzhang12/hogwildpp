@@ -81,11 +81,11 @@ int inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
     fp_type * const next_vals = next_model->weights.values;
     fp_type * const next_old_vals = next_model->old_weights.values;
     fp_type beta = params.beta;
-    fp_type lambda = params.lambda;
+    fp_type lambda = params.lambda; 
     fp_type tolerance = params.tolerance;
     for (unsigned i = 0; i < w.size; ++i) {
       fp_type wi = vals[i];
-      fp_type delta = wi - old_vals[i];
+      fp_type delta = (wi - old_vals[i]) * params.step_size;
       fp_type next = next_vals[i];
       fp_type new_wi;
       if (fabs(delta) > tolerance) {
@@ -119,6 +119,7 @@ int inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
 void NumaSVMExec::PostUpdate(NumaSVMModel &model, SVMParams &params) {
   // Reduce the step size to encourage convergence
   params.step_size *= params.step_decay;
+  // printf("Step size = %f\n", params.step_size);
 }
 
 int NumaSVMExec::GetNumaNode() {
