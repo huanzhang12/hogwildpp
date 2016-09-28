@@ -13,8 +13,8 @@
 *.log
 
 # compiled libraries
-obj
-bin
+# obj
+# bin
 
 # datasets
 data
