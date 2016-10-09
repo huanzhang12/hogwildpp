@@ -84,7 +84,7 @@ int inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
     update_atomic_counter = params.update_delay;
     fp_type * const old_vals = model->old_weights.values;
     fp_type * const next_vals = next_model->weights.values;
-    fp_type * const next_old_vals = next_model->old_weights.values;
+    // fp_type * const next_old_vals = next_model->old_weights.values;
     fp_type beta = params.beta;
     fp_type lambda = params.lambda; 
     // if the delta of a model parameter is smaller than tolerance, we will not update it
