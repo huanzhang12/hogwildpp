@@ -56,8 +56,11 @@ ThreadPool::~ThreadPool() {
   if (threads_ == NULL) {
     return;
   }
+  /* safely exit all threads */
+  Join();
+  /* cleanup */
   delete [] threads_;
-  delete [] metas_; // FIXME: this might be deleted before threads exit
+  delete [] metas_;
   delete [] thread_core_mapping_;
   delete [] thread_node_mapping_;
   delete [] thread_phycore_mapping_;
