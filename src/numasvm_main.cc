@@ -261,8 +261,11 @@ int CreateNumaPerNodeCentralSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy
 }
 
 
+/* this function creates models in a ring manner and groups cluster_size threads into a cluster, which shares a single model.
+   the cluster_size variable is the "c" in HogWild++ paper.
+*/
 int CreateNumaClusterRoundRobinRingSVMModel(NumaSVMModel * &node_m, size_t nfeats, hazy::thread::ThreadPool &tpool, unsigned nthreads, unsigned cluster_size, int update_delay) {
-  // Build the weight update chain
+  /* determine which w to access for each thread */
   int * thread_to_weights_mapping = new int[nthreads];
   int * next_weights = new int[nthreads];
   unsigned phycpu_count = tpool.PhyCPUCount();
@@ -272,17 +275,16 @@ int CreateNumaClusterRoundRobinRingSVMModel(NumaSVMModel * &node_m, size_t nfeat
   assert((nthreads % cluster_size == 0) && "Total number of threads must be a multiple of cluster size\n");
   assert((nthreads > phycpu_count ? (phycpu_count % cluster_size == 0) : 1) && 
          "When total number threads is greater than core count, core count must by a multiple of cluster size\n");
-  /* weight update policy: 
-     Each physical core has a separated model data structure, but some of them might share the same w
-  */
+  /* weight update policy: Each cluster has a separated model data structure  */
+  /* Build the weight update chain */
   for (unsigned i = 0; i < nthreads; ++i) {
     thread_to_weights_mapping[i] = ((i % phycpu_count) % cluster_size) * cluster_count + ((i % phycpu_count) / cluster_size);
   }
   /* next-weight policy:
-     Threads of a node take turns communicating with adjacent node
-     0, 4, 1, 5, 2, 6, 3, 7
-     We assume that first N threads will be allocated to physical cores, 
-     (N = total #CPU)
+     Threads in a cluster take turns communicating with adjacent node
+     for example, if we have 8 threads and 2 clusters, the order is 0, 4, 1, 5, 2, 6, 3, 7
+     We assume that first N threads will be allocated to physical cores. (N = #physical cores)
+     Threads allocated to hyperthreading cores will not be responding for synchronization.
   */
   for (unsigned i = 0; i < nthreads; ++i) {
     if (i < phycpu_count) {
@@ -308,19 +310,25 @@ int CreateNumaClusterRoundRobinRingSVMModel(NumaSVMModel * &node_m, size_t nfeat
     numa_run_on_node(node);
     numa_set_preferred(node);
     if (i / cluster_count == 0) {
+      // only allocate memory for the first thread in each cluster
       printf("Allocating memory for weight %d (thread %d) on node %d\n", i, thread_id, node);
       node_m[i].AllocateModel(nfeats);
       PrintNumaMemStats();
     }
     else {
+      // this thread shares the model
       node_m[i].MirrorModel(node_m[i % cluster_count]);
     }
+    // now initializes the token (atomic counter)
     node_m[i].atomic_ptr = atomic_ptr;
     node_m[i].atomic_mask = atomic_mask;
+    // each thread will increase the counter by atomic_inc_value
     if (i == weights_count - 1) {
+      // the last cluster is special, need to return the counter to 0
       node_m[i].atomic_inc_value = atomic_mask - weights_count + 2;
     }
     else {
+      // other cluster will just increase the counter by 1
       node_m[i].atomic_inc_value = 1;
     }
     node_m[i].thread_to_weights_mapping = thread_to_weights_mapping;

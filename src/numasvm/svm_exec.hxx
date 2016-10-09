@@ -42,26 +42,23 @@ int inline ComputeAccuracy(const SVMExample &e, const NumaSVMModel& model) {
   return !!std::max(dot * e.value, static_cast<fp_type>(0.0));
 }
 
+/* this is the core function, for updating the model */
 int inline ModelUpdate(const SVMExample &examp, const SVMParams &params, 
                  NumaSVMModel *model, NumaSVMModel *next_model, int tid, int weights_index, 
 		 bool &allow_update_w, int iter, int &update_atomic_counter) {
   int sync_counter = 0;
   vector::FVector<fp_type> &w = model->weights;
-  // vector::FVector<fp_type> &dw = model->delta_weights;
 
   // evaluate this example
   fp_type wxy = vector::Dot(w, examp.vector);
-  // fp_type wxy = vector::AddAndDot(w, dw, examp.vector);
   wxy = wxy * examp.value;
 
   if (wxy < 1) { // hinge is active.
     fp_type const e = params.step_size * examp.value;
     vector::ScaleAndAdd(w, examp.vector, e);
-    // vector::ScaleAndAdd(dw, examp.vector, e);
   }
 
   fp_type * const vals = w.values;
-  // fp_type * const dvals = dw.values;
   unsigned const * const degs = params.degrees;
   size_t const size = examp.vector.size;
   // update based on the evaluation
@@ -70,18 +67,27 @@ int inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
     int const j = examp.vector.index[i];
     unsigned const deg = degs[j];
     vals[j] *= (1 - scalar / deg);
-    // dvals[j] = dvals[j] * (1 - scalar / deg) - vals[j] * (scalar / deg);
   }
-  // update dw to the other thread
+
+  // Now we update dw to the next cluster (new in HogWild++)
+
+  // if the precondition does not hold, we will not test the atomic counter
+  // next_model is true only when this thread is the thread in the cluster that is responsible for updating dw
+  // allow_update_w is true when we do not currently have the token, false when we have the token
+  //   but have not passed it to the next cluster yet due to the token delay \tau_0
+  // When allow_update_w is true, update_atomic_counter is to avoid reading the counter to frequently
   bool precond = next_model && allow_update_w && update_atomic_counter < 0;
   if (precond && model->GetAtomic() == weights_index) {
+    // we got the token, start to synchronize w
     allow_update_w = false;
+    // when allow_update_w is false, update_atomic_counter is the token passing delay \tau_0 
     update_atomic_counter = params.update_delay;
     fp_type * const old_vals = model->old_weights.values;
     fp_type * const next_vals = next_model->weights.values;
     fp_type * const next_old_vals = next_model->old_weights.values;
     fp_type beta = params.beta;
     fp_type lambda = params.lambda; 
+    // if the delta of a model parameter is smaller than tolerance, we will not update it
     fp_type tolerance = params.tolerance;
     for (unsigned i = 0; i < w.size; ++i) {
       fp_type wi = vals[i];
@@ -89,27 +95,34 @@ int inline ModelUpdate(const SVMExample &examp, const SVMParams &params,
       fp_type next = next_vals[i];
       fp_type new_wi;
       if (fabs(delta) > tolerance) {
-	fp_type new_wi = next * lambda + wi * (1 - lambda) + (beta + lambda - 1) * delta;
-	next_vals[i] = next + beta * delta;
-	vals[i] = new_wi;
-	old_vals[i] = new_wi;
-	sync_counter++;
+        fp_type new_wi = next * lambda + wi * (1 - lambda) + (beta + lambda - 1) * delta;
+        next_vals[i] = next + beta * delta;
+        vals[i] = new_wi;
+        old_vals[i] = new_wi;
+        // count how many times we write dw (for debuging only)
+        sync_counter++;
       }
       else {
+        // if the delta is very small, will not update the model of next cluster
+        // this delta will be accumulated
         new_wi = next * lambda + wi * (1 - lambda) + lambda * delta;
-	vals[i] = new_wi;
-	old_vals[i] = new_wi - delta;
+        vals[i] = new_wi;
+        old_vals[i] = new_wi - delta;
       }
     }
     // printf("%d/%d(@%d):%d/%ld\n", tid, weights_index, iter, sync_counter, w.size);
   }
   // if (update_atomic_counter != -1) {
     update_atomic_counter--;
+    // when allow_update_w is false, we currently hold the token.
+    // In this case, when update_atomic_counter becomes 0, we will pass the token to the next cluster
     if (!update_atomic_counter && !allow_update_w) {
       // printf("%d(@%d):inc\n", tid, iter);
       model->IncAtomic();
+      // now we have passed the token the the next cluster, allowing updates again
       allow_update_w = true;
-      // Add some delay before we read the atomic next time
+      // Add some delay before we read the atomic next time, to avoid reading the counter too frequently.
+      // after at least params.udate_delay * params.weights_count ticks we shall start checking the counter again
       update_atomic_counter = params.update_delay * params.weights_count;
     }
   // }
@@ -158,14 +171,8 @@ double NumaSVMExec::UpdateModel(SVMTask &task, unsigned tid, unsigned total) {
          atomic_inc_value, atomic_mask, update_atomic_counter);
   int sync_counter = 0;
   bool allow_update_w = m->allow_update_w;
-  // int update_counter = 0;
-  // int update_thresh = m->weights.size / 16;
   for (unsigned i = start; i < end; i++) {
     size_t indirect = perm[i];
-    // update_counter += examps[indirect].vector.size;
-    // allow_update_w = update_counter > update_thresh;
-    // allow_update_w = allow_update_w || ((i & 0xff) == (0xff * (tid + 1) / total));
-    // if (allow_update_w) update_counter = 0;
     sync_counter += ModelUpdate(examps[indirect], params, m, next_m, tid, weights_index,
                                 allow_update_w, i - start, update_atomic_counter);
   }
