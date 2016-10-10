@@ -12,7 +12,7 @@ following paper:
 
 ```
 HogWild++: A New Mechanism for Decentralized Asynchronous Stochastic Gradient Descent
-Huan Zhang, Cho-Jui Hsieh and Venkatesh Akella
+Huan Zhang, Cho-Jui Hsieh and Venkatesh Akella, 2016. 
 ```
 
 In our implementation, clusters are organized in a logical directional ring,
